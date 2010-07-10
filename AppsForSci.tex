@@ -170,7 +170,32 @@ Once you have constructed \texttt{maskedImage}s, masking and
 uncertainty propagation is done {\it automatically} when you invoke
 these arithmetic operations.
 
-NEED EXAMPLE HERE.
+A couple caveats first, before the examples:
+\begin{itemize}
+\item The mask part of MaskedImage is not just another image but
+is created with MaskU, where the ``U'' stands for ``unsigned''.
+\item The error message you get when you use a constructor
+incorrectly is not very specific.  You might get a list of all
+possible constructors, which is not very helpful when there
+are dozens and you just want to know where your one little mistake
+is.  (Not that the software COULD know what you mean, of course,
+but it's different from say, C, where the compiler knows what type
+the third argument should be, and tells you quite specifically when you
+give it the wrong type.)
+\end{itemize}
+
+\subsection{Creating a masked image from nothing}
+
+\begin{verbatim}
+a = afwImg.ImageF(10,10) # image
+v = afwImg.ImageF(10,10) # variance image
+m = afwImg.MaskU(10,10) # mask
+mi = afwImg.MaskedImageF(a,m,v) # put it all together into one maskedImage
+\end{verbatim}
+
+
+\subsection{Creating a masked image from something}
+
 
 \section{Image statistics}
 
