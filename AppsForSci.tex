@@ -60,13 +60,7 @@ simple tasks.  Once you have the LSST software stack installed (see
 Appendix~\ref{appendix-stackinstall}), try these examples.  Remember
 to source loadLSST.csh or loadLSST.sh before starting Python.  These
 examples are designed to be run in interactive mode, so just type
-\texttt{python} to start and copy/paste the examples in.  If you
-prefer to save the examples to local files and then run Python on them
-in noninteractive mode, be aware that the examples build on previous
-examples as if you were continuously in interactive mode.  For
-example, we create and use an object called \texttt{im1} in the first
-example, and we use it again in the second example without explicitly
-creating it again.
+\texttt{python} to start and copy/paste the examples in.
 
 
 \section{Reading and displaying a FITS image}
@@ -96,7 +90,12 @@ To save memory and time, images are operated on in-place.  That is,
 you can subtract images of identical size like this:
 
 \begin{verbatim}
+import lsst.afw.display.ds9 as ds9
+import lsst.afw.image as afwImg
+
+im1 = afwImg.ImageF(`image1.fits')
 im2 = afwImg.ImageF('image2.fits')
+
 im1 -= im2
 \end{verbatim}
 
@@ -106,6 +105,12 @@ explicitly force the creation of the new image and {\it then} do the
 in-place arithmetic:
 
 \begin{verbatim}
+import lsst.afw.display.ds9 as ds9
+import lsst.afw.image as afwImg
+
+im1 = afwImg.ImageF(`image1.fits')
+im2 = afwImg.ImageF('image2.fits')
+
 im3 = afwImg.ImageF(im1,True)
 im3 =- im2
 \end{verbatim}
@@ -114,7 +119,7 @@ Again, this is because when working with large amounts of data we want
 to minimize the amount of pixel copying.  The system is designed to
 avoid new copies unless explicitly asked.
 
-The first line above creates a new copy of im1, called im3.  There are
+The first line above, beginning with im3, creates a new copy of im1, called im3.  There are
 two very important things to note about this line:
 
 \begin{itemize}
@@ -187,6 +192,8 @@ give it the wrong type.)
 To create a masked image from nothing, use the following example, substituting your own dimensions for the ones included here.
 
 \begin{verbatim}
+import lsst.afw.image as afwImg
+
 a = afwImg.ImageF(10,10) # image
 v = afwImg.ImageF(10,10) # variance image
 m = afwImg.MaskU(10,10) # mask
@@ -203,7 +210,10 @@ computation time, you specify beforehand which statistics to compute,
 as follows:
 
 \begin{verbatim}
+import lsst.afw.image as afwImg
 import lsst.afw.math as math
+
+im1 = afwImg.ImageF(`image1.fits')
 
 flags = math.MEAN | math.STDEV | math.ERRORS 
 stats = math.makeStatistics(im1,flags)
@@ -254,6 +264,14 @@ the default values except to ask for 5$\sigma$ rather than 3$\sigma$
 clipping.
 
 \begin{verbatim}
+import lsst.afw.image as afwImg
+import lsst.afw.math as math
+
+im1 = afwImg.ImageF(`image1.fits')
+
+flags = math.MEAN | math.STDEV | math.ERRORS 
+stats = math.makeStatistics(im1,flags)
+
 ctrl = math.StatisticsControl(5.0,3,0,True,False)
 stats = math.makeStatistics(im1,flags,ctrl)
 print stats.getResult(math.STDEV) 
@@ -272,6 +290,10 @@ bounding box object, which itself must be defined by two
 the corners.  We then call \texttt{ImageF} in a new way:
 
 \begin{verbatim}
+import lsst.afw.image as afwImg
+
+im1 = afwImg.ImageF(`image1.fits')
+
 llc = afwImg.PointI(290,250)
 urc = afwImg.PointI(300,260)
 bbox = afwImg.BBox(llc,urc)
