@@ -184,7 +184,7 @@ the third argument should be, and tells you quite specifically when you
 give it the wrong type.)
 \end{itemize}
 
-\subsection{Creating a masked image from nothing}
+To create a masked image from nothing, use the following example, substituting your own dimensions for the ones included here.
 
 \begin{verbatim}
 a = afwImg.ImageF(10,10) # image
@@ -193,9 +193,7 @@ m = afwImg.MaskU(10,10) # mask
 mi = afwImg.MaskedImageF(a,m,v) # put it all together into one maskedImage
 \end{verbatim}
 
-
-\subsection{Creating a masked image from something}
-
+To create a masked image using files of your own for the image and variance image, simply replace the dimensions in the example above with the usual string of the file name.  Make sure that the mask you create has the same dimensions as your images!  We will explain later how to specify which mask planes you want to use in your masked image.
 
 \section{Image statistics}
 
@@ -289,8 +287,6 @@ copy should not be made).  Shallow copies are excellent for
 efficiently extracting postage stamps, as long as you remember the
 implications of modifying their pixel values.
 
-ALSO SHOW HOW TO WRITE IT TO A NEW FILE.
-
 You can set pixel values using the \texttt{<<=} operator.  For
 example, if you wanted to set all the pixels inside the bounding box to a
 scalar value, say 99:
@@ -331,6 +327,13 @@ make the mosaic image as square as possible.  Other allowed values are
 ``y'' and ``x'' which make the mosaic one image wide and one image
 high, respectively.  The \texttt{setGutter} command sets the number of
 pixels between each image in the mosaic.
+
+To save your mosaic image as a new FITS file:
+
+\begin{verbatim}
+afwImg.ImageF.writeFits(mosaic,'filename.fits')
+\end{verbatim}
+
 
 %See also the ``How to display an image'' link on the ``Related Pages''
 %tab of the aforementioned documentation, for additional image
