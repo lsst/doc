@@ -195,12 +195,12 @@ To create a masked image from nothing, use the following example, substituting y
 import lsst.afw.image as afwImg
 
 a = afwImg.ImageF(10,10) # image
-v = afwImg.ImageF(10,10) # variance image
-m = afwImg.MaskU(10,10) # mask
+v = afwImg.ImageF(a.getDimensions()) # variance image
+m = afwImg.MaskU(a.getDimensions()) # mask
 mi = afwImg.MaskedImageF(a,m,v) # put it all together into one maskedImage
 \end{verbatim}
 
-To create a masked image using files of your own for the image and variance image, simply replace the dimensions in the example above with the usual string of the file name.  Make sure that the mask you create has the same dimensions as your images!  We will explain later how to specify which mask planes you want to use in your masked image.
+To create a masked image using files of your own for the image and variance image, simply replace the dimensions in the example above with the usual string of the file name.  We will explain later how to specify which mask planes you want to use in your masked image.
 
 \section{Image statistics}
 
