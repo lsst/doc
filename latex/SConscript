@@ -1,0 +1,6 @@
+# -*- python -*-
+Import('env')
+
+targ = "lsstManual"
+pdfOutput = env.PDF(target=targ+'.pdf',source=targ+'.tex')
+Depends(pdfOutput, Split(targ + '.tex'))
