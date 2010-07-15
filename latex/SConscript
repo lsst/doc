@@ -65,7 +65,7 @@ Depends(pdfOutput, Glob("*.tex"))
 ##################
 # make the html
 #
-htmlManDir = "../htmlManual"
+htmlManDir = "htmlDir"
 latex2html = 'latex2html -split 3 -html_version "4.0" -local_icons -mkdir -dir ' + htmlManDir + ' $SOURCE'
 Latex2HtmlAction = Action(latex2html)
 Latex2HtmlBuilder = Builder(action = Latex2HtmlAction, chdir=1)

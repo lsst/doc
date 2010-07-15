@@ -10,15 +10,25 @@ def loadConfigFile(configFile):
 
     fp = open(configFile, 'r')
     for line in fp.readlines():
-        if re.search("^\s*#", line) or re.search("^\s*$", line):
+        # it's tempting to skip blank lines here, but don't!
+        #  ... a line continuation '\' followed by a
+        #    blank line (removed) will append the wrong line
+        if re.search("^\s*#", line):
             continue
         lines.append(line)
     fp.close()
 
     out = re.sub(r"\\\n+", " ", "".join(lines)) # join contined '/' lines
     out = out.strip("\n")                       # remove leading and trailing \n
+
+    # now we can remove blank lines
+    lines = []
+    for line in out.split("\n"):
+        if re.search("^\s*$", line):
+            continue
+        lines.append(line)
     
-    return out.split("\n")
+    return lines
 
 
 class Doxyfile(object):
@@ -52,7 +62,7 @@ class Doxyfile(object):
 
         for line in lines:
 
-            mat = re.search(r"^\s*(\S+)\s*=\s*(.*)", line)
+            mat = re.search(r"^\s*(\S+)\s*=\s*(.*)$", line)
             assert mat
 
             values = []
@@ -84,7 +94,7 @@ class Doxyfile(object):
                "\n".join(["%-30s = %s" % item for item in self.entries.items()])
 
     ############
-    # provide a shortcut to entries' keys
+    # provide a shortcut to entries' k,v pairs
     def items(self):
         return self.entries.items()
 
@@ -95,7 +105,7 @@ class Doxyfile(object):
 # 
 #
 ###################################################################
-def main(products, baseDir=None, verbose=False):
+def main(products, baseDir=None, htmlDir="htmlDir", verbose=False):
 
     configs = {}
     productList = []
@@ -114,11 +124,19 @@ def main(products, baseDir=None, verbose=False):
         for doxySetting, value in configs[p].items():
             # append if we already have this setting
             if config.entries.has_key(doxySetting):
-                values = value.split() + config.entries[doxySetting].split()
+                # if it's a quoted string, don't split it
+                if re.search("\"[^\"]+\"", value.strip()):
+                    values = [value, config.entries[doxySetting]]
+                else:
+                    values = value.split() + config.entries[doxySetting].split()
                 config.entries[doxySetting] = " ".join(set(values))
             else:
                 config.entries[doxySetting] = value
 
+    # override the output directory
+    config.entries["HTML_OUTPUT"] = htmlDir
+    config.entries["GENERATE_TAGFILE"] = os.path.join(htmlDir, "doxygen.tag")
+    
     return str(config)
 
 
