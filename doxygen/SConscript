@@ -1,0 +1,31 @@
+# -*- python -*-
+#
+Import('env')
+import eups, os
+
+doxygen_conf = "/u/bick/sandbox/lsst/doc-1086/doxygen/doxygen.conf"
+doxygen_conf = "doxygen.conf"
+
+if False:
+    def writeDoxygen_conf(products=None):
+
+        import writeDoxyConfig
+
+        if products == None:
+            products = []
+            for prod in eups.Eups().getSetupProducts():
+                products.append(prod.name)
+
+        doxyconfScript = writeDoxyConfig.main(products, verbose=True)
+
+        fp = open(doxygen_conf, 'w')
+        fp.write(doxyconfScript + "\n")
+        fp.close()
+
+
+    products = ["meas_astrom", "afw"]
+    writeDoxygen_conf(products)
+
+env.Doxygen(doxygen_conf)
+
+#env.Depends(doxy, "../")

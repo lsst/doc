@@ -4,11 +4,11 @@
 import os, sys
 import lsst.SConsUtils as scons
 
-env = scons.makeEnv("devenv_doc", r"$HeadURL: $", [])
+env = scons.makeEnv("devenv_doc", r"$HeadURL: $", [ ])
 
 
 # farm out the SCoscripts
-for d in ["latex",]:
+for d in ["latex", "doxygen"]:
     try:
         SConscript(os.path.join(d, "SConscript"))
     except Exception, e:
