@@ -1,0 +1,85 @@
+% install
+
+%\section{How do I install all this stuff?}
+
+The place to start is
+\url{http://lsstdev.ncsa.uiuc.edu/trac/wiki/Installing}.  From here
+you can jump to {\it Installing on Linux} or {\it Installing on
+  Macintosh}.  Don't worry that the list of officially supported
+platforms is short and probably doesn't include yours; in practice,
+the stack should run on most Linux or Mac systems with only minor
+tweaks, and most developers actually work on ``unsupported''
+platforms!  The ``supported'' moniker indicates that when push comes
+to shove, the highest priority for the project is that the code runs
+on the big Linux clusters that will be used for production.  But if
+you need help on an ``unsupported'' platform, ask around and you will
+most likely get help.
+
+The code does tend not to work on the absolute latest versions of
+things (for example MacOS 10.6 and Linux versions which use gcc 4.4,
+although there is an easy workaround for the latter).  Machines with
+middle-aged OS's like MacOS 10.5 and Linux versions with gcc 4.3 are
+going to work out of the box.
+
+This author installed on Ubuntu 10.04, so we will go through the
+process step-by-step for that OS.  Clicking on {\it Installing on
+  Linux}, we get to a page which (at the bottom) lists the OS packages
+which must be present before the stack can be installed; for
+Debian/Ubuntu, we see g++, subversion, etc.  Copy and paste the
+apt-get command for installing all these packages. It may vary
+slightly for other versions of Ubuntu/Debian, as package names
+sometimes change.
+
+With that done, rejoin the OS-independent part of the install
+instructions at
+\url{http://dev.lsstcorp.org/GettingStarted.html#lsst_home}.  They ask
+you to define a few environment variables, choose a directory to
+install into (user space is probably best), grab the install script
+from the given URL, and run it.  That's it.  It should take at least
+60 minutes to download and compile everything. 
+
+A warning: the install script may say "Installation complete" at the
+end even if previous steps have failed!  Be sure to skim the output of
+the install script to see if everything went ok.  In the case of
+Ubuntu 10.04, afw fails to compile; this turns out to be a known issue
+with a known, easy fix\footnote{So why doesn't the project
+  automatically apply the fix?  Because it only occurs with gcc 4.4,
+  which hasn't been officially adopted yet. By the time it is, a new
+  version of the third-party library with the relevant bugfix will
+  also be adopted.} described at
+\url{http://dev.lsstcorp.org/trac/ticket/1124} (note: you may need a
+login to see this part of the dev.lsstcorp.org site).  After applying
+the fix, the install script runs to completion.
+
+You may wish to scroll down the install instructions page for a brief
+explanation of the subdirectory structure that's been installed.  This
+explanation is most relevant for power users who will be running
+multiple versions and platforms.
+
+To use the software you must perform two configuration steps:
+\begin{enumerate}
+\item Tell Python where to find the LSST packages by
+  running \\ \texttt{source /your/install/path/loadLSST.csh} (or loadLSST.sh
+  for bash users).  You can test this by starting Python in
+  interactive mode (just type \texttt{python}) and then telling Python
+  \texttt{import lsst}.  If that doesn't fail with an error (sucess
+  will be silent), then loadLSST.csh has done its job.
+
+\item For each package you wish to use, specify which version of that
+  package you wish to use by running \texttt{setup [packagename]} on the
+  Unix command line, for example \texttt{setup afw}.  Setup is designed to
+  help developers switch different versions of, eg, afw in and out for
+  testing.  Most readers of this document will not wish to do that,
+  but will still need to run setup without specifying any particular
+  version; this automatically pulls in the latest version.  You can
+  test this step by again entering Python in interactive mode and
+  typing \texttt{import lsst.afw}.  Note that the package names you specify
+  to setup are less hierarchical than the corresponding Python or C++
+  namespaces.  For example, you would \texttt{setup meas\_astrom} and then
+  \texttt{import lsst.meas.astrom}.  You do {\it not} \texttt{setup meas::astrom} or 
+  \texttt{setup meas.astrom}.
+
+\end{enumerate}
+
+Now you are ready to try the hello world examples in
+Chapter~\ref{chap-hello}! 

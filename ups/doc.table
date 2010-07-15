@@ -1,1 +1,2 @@
 setupRequired(afw)
+setupRequired(meas_astrom)

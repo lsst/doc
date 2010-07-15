@@ -1,0 +1,30 @@
+%% Chapter purpose
+
+The Large Synpotic Survey Telescope (LSST) Data Management (DM) team
+have developed a large set of software modules for astronomical image
+reduction and analysis.  The code is open-source and designed to be
+generally useful for all sorts of imaging surveys.  Development has
+reached the point where it may be useful for scientists inside or
+outside the LSST project to use the software for general work.  This
+guide is intended for scientists who have not written any of the code
+and who are unfamiliar with the tools upon which the LSST software
+stack is built.  It contains pointers to resources for those who wish
+to drill down very deeply, but aims to be reasonably self-contained
+for newbies.
+
+In LSST world, we write number-crunching code in C++ and string
+together the number-crunching steps with Python.  This allows us to
+take advantage of the speed of C++ when necessary, and the ease of
+Python otherwise.  You may be familiar with SciPy/NumPy, which give
+you the ease of Python\footnote{If you are not familiar with Python,
+  you should become familiar with it, even if you have no plans to
+  work with LSST software.  It's extremely useful.  See XXX for a good
+  tutorial.} while enabling the speed of C++ ``under the hood.''  You
+can think of the LSST software as providing astronomy-specific
+functionality ``under the hood'' in a similar way, but you will not be
+quite as insulated from the C++ details as you would be with
+SciPy/NumPy.  This document assumes that you will be writing Python
+rather than C++, but you may need to refer to the C++ documentation to
+see what features are available.  We will guide you through that
+process.
+

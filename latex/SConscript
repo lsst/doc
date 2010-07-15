@@ -1,6 +1,46 @@
 # -*- python -*-
 Import('env')
+import os, eups
 
-targ = "lsstManual"
-pdfOutput = env.PDF(target=targ+'.pdf',source=targ+'.tex')
-Depends(pdfOutput, Split(targ + '.tex'))
+
+################
+# machine-write a .tex file for currently setup packages
+# We'll \input this file in the lsstManual.tex
+extFile = "lsstPackages.tex"
+
+pkgs = eups.Eups().getSetupProducts()
+
+fp = open(extFile, 'w')
+fp.write("\\newcommand{\lsstinput}{}\n")
+for pkg in pkgs:
+    version, eupsPathDir, prodDir, tableFile, flavor = pkg.getSetupVersion()
+    pkgTexDir = os.path.join(prodDir, "doc", "latex")
+    
+    # for each file, renew our latex \lsstinput command
+    #   so it prepends an absolute path
+    if os.path.exists(os.path.join(pkgTexDir, "package.tex")):
+        fp.write("\\renewcommand{\lsstinput}[1]{{\input{"+pkgTexDir+"/#1}}}\n")
+        fp.write("\lsstinput{package}\n")
+fp.close()
+
+
+#################
+# build the latex
+#
+filebase = "lsstManual"
+pdfOutput = env.PDF(target = filebase + '.pdf',source = filebase + '.tex')
+# have to list the machine generated file specifically for cleaning
+Clean(".", "lsstPackages.tex") 
+Depends(pdfOutput, Glob("*.tex"))
+
+
+##################
+# make the html
+#
+Latex2HtmlAction = Action('latex2html -split 3 -html_version "4.0" -local_icons -mkdir -dir ../html $SOURCE')
+Latex2HtmlBuilder = Builder(action = Latex2HtmlAction, chdir=1)
+env.Append(BUILDERS = {'Latex2Html' : Latex2HtmlBuilder})
+
+htmlOutput = env.Latex2Html(source = filebase + '.tex')
+Depends(htmlOutput, Glob("*.tex"))
+Clean(".", "../html")

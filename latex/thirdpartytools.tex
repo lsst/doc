@@ -1,0 +1,79 @@
+% third party tools
+
+The LSST C++ programmers themselves build upon numerous open-source
+libraries and tools.  This appendix gives a brief overview of those
+tools.  You do not have to read it thoroughly to make sense of the
+rest of this document, but it may be useful to have some reference
+point for the various terms that may appear when you install and run
+the software.  LSST has blessed certain versions of these things as
+the official LSST versions, which are installed in one big gulp by the
+procedure described in Appendix~\ref{appendix-stackinstall}.  Thus you
+do not have to follow the URLs in this appendix; they are for your
+information only.
+
+\section{SCons}
+
+Think of SCons (\url{http://www.scons.org}) as the new ``make.''  (The
+name comes from ``software construction.'')  Why don't we simply use
+make?  Because SCons is more powerful; an SCons script {\it is} a
+Python script, so it has the full power of Python when necessary, but
+it automates the routine jobs.  That said, SCons will take some
+getting used to if you are writing and building C++ code.  Those of
+you sticking to Python will not need it.
+
+\section{EUPS}
+
+EUPS is the Extended Unix Product System.  It's a way to manage all of
+the versions of all of the libraries and tools you may have on your
+system.  For example, if you already have NumPy installed but it's not
+the official LSST version, you need to set up various paths so that
+when you run LSST software, it uses the expected version.  You do {\it
+  not} have to delete your personal version, which you may need for
+other projects.  (LSST software may in fact run with your
+pre-installed version, but that is not guaranteed, and you will not
+receive much help from the project if you encounter problems this
+way.)  EUPS is designed to make this easy even in the presence of all
+the various LSST and third-party packages with all their versions and
+running on many different flavors of OS.  EUPS grew out of a similar
+tool written by astronomers for the Sloan Digital Sky Survey, and is
+now maintained by LSST.  Its home page appears to be
+\url{http://dev.lsstcorp.org/trac/wiki/Eups}.
+
+\section{svn}
+
+As a user rather than an LSST developer, you may never have to use
+svn, but you will likely hear references to it.  SVN (short for
+``subversion'', \url{http://subversion.tigris.org}) is a modern
+software repository system.  When developers check in new versions of
+code, svn automatically saves the old version, records who checked in
+the new version, can generate diffs when requested, etc.  And it's not
+limited to code; the writers of the LSST Science Book used svn to
+coordinate the contributions of hundreds of authors.  There is a
+distinction between svn the software on one hand, and any particular
+svn repository on the other.  LSST DM has one repository, the LSST
+Science Book has another, and thousands of other software projects
+have their own svn repositories.  An example of the kind of thing EUPS
+should do is set up an environment variable that tells svn where the
+LSST DM repository is, rather than force you to type it on the svn
+command line.
+
+Most large software projects make a public release by extracting a
+particular snapshot of their svn repository and making it downloadable
+in, say, one big gzipped tar file.  Users who download it thus do not
+need an svn client; access to the bleeding-edge version of the code
+would actually be harmful for many people.  LSST software is not quite
+this publicly-accessible, but XXX
+
+\section{Other third-party packages}
+
+The LSST software stack makes use of many other third-party packages,
+for example Boost, a set of general-purpose C++ libraries; cfitsio;
+swig (a system for making C++ and Python, among other languages, work
+together); Python and various Python modules; etc.  You probably don't
+need to worry about any of these in any detail, but you will likely
+see their names when you drill down a little deeper than this
+document.
+
+% Do we need these?
+% \chapter{Glossary}
+% \chapter{Index}
