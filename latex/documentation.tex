@@ -1,8 +1,60 @@
 % documentation
 
 % latex, html and doxygen
+\section{Documentation Overview\label{sec-doc-overview}}
+
+LSST software is documented in two fundamental ways:
+
+\begin{description}
+  
+\item[The LSST Developer's Manual] This is a single document,
+  written in \latex, and is intended to be a `manual' in the traditional
+  sense of the word.  It's available online in HTML format, and also
+  as a PDF document. You're currently reading the Developer's Manual!
+
+\item[The Doxygen source code documentation] This is a source code
+  reference, containing summaries of the various classes and
+  functions, and their associated parameters (ie. arguments, return
+  values, etc.).  It is an HTML (online) reference which allows a
+  developer to look up the application programming interface (API) for
+  a given class or function, and to link quickly to other related
+  classes and parameters.  Doxygen is machine generated directly from
+  source code, with additional information (variable definitions,
+  brief summaries, etc) taken from specific comments included by the
+  programmer. Because of the way it is used (`browsing' source code),
+  it is available only in HTML.
+    
+\end{list}
+
+Each of these forms of documentation are available for individual
+packages, and for the entire LSST project.  Here, we'll describe the
+details of the LSST documentation system.
+
 
 % main doc package
+\section{The Main Documentation Package, \texttt{devenv/doc}\label{sec-maindoc}}
+
+The main documentation package lives in \texttt{devenv/doc}, and much
+of the documentation contained in the Developer's Manual can be found
+here.  However, the parts of the manual dealing with individual
+packages are stored with the relevant packages, and are pulled into
+the manual when it is compiled.
+
+Conversely, there is very little Doxygen documentation stored in
+\texttt{devenv/doc}.  When built, the package collects Doxygen
+configuration files from all available (setup) packages and creates a
+single comprehensive Doxygen reference.
+
+The documentation package differs in structure from other standard
+LSST packages, containing only \texttt{doxygen/} and \texttt{latex/}
+directories.
+
+\subsection{The Main \latex Documentation}
+
+
+
 
 % individual package documentation
+\section{Documenting an Individual Package\label{sec-packagedoc}}
+
 
