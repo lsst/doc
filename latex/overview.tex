@@ -1,0 +1,164 @@
+% overview
+
+Having demonstrated how easy it is to do powerful things with this
+software, let's take a brief look at each of the available packages
+and what they can do.  Later in this book, each package will star in
+its own more detailed chapter.
+
+\section{Online documentation}
+
+It will be useful to browse the online documentation while reading
+through this chapter.  As the C++ programmers write their code, they
+build in a certain amount of documentation through a system called
+Doxygen.  Doxygen generates a web page for each package and class and
+makes it relatively easy to click through.  For example, if a method
+takes an argument of a type you don't recognize, you should be able to
+click on it and get the definition of that type.
+
+The most convenient version of the Doxygen docs is available online at
+\url{http://www.astro.princeton.edu/~rhl/LSST/Doxygen/htmlDir/index.html}.
+While the code is constantly changing, this website is not constantly
+updated; however, it should be sufficient for most needs.  If necessary,
+there is a way to generate the docs from the exact version of the code that
+exists on your computer, but it won't be as nicely crosslinked as this
+version; you will have to search each package separately, for example.
+
+This section will describe how to navigate the online documentation,
+but first we must discuss the concept of {\it namespace}.  In older
+languages such as Fortran and C there is only one namespace; each
+distinct function must have a distinct name.  This could become a
+problem if you were using multiple third-party libraries and different
+libraries happened to use the same name for different things,
+resulting in a {\it name collision}.  In Python and C++, name
+collisions are avoided by having multiple namespaces.  For example, in
+Python the statement \texttt{import lsst.afw.image as afwImg} means
+that there is an lsst namespace, within that an afw namespace, and
+within that an image namespace; and to avoid the hassle of constantly
+typing lsst.afw.image, we will define afwImg as a nickname.  So we can
+refer to the constructor \texttt{lsst.afw.image.ImageF} as \texttt{afwimage.ImageF}
+without worrying that there might also be an \texttt{ImageF} defined
+in \texttt{some.other.package}; that \texttt{ImageF} would have to be
+referred to as \texttt{some.other.package.ImageF}.  See
+\url{http://docs.python.org/tutorial/classes.html#python-scopes-and-namespaces}
+for a more detailed description.
+
+
+\subsubsection{Navigating the maze:  The tabs}
+
+Go ahead and click on
+\url{http://www.astro.princeton.edu/~rhl/LSST/Doxygen/htmlDir/index.html}
+if you haven't already.  The {\it Main Page} is titled {\it lsst::afw; the
+LSST Application Framework} and is indeed afw-centric.  While afw is
+the obvious starting place for newbies, keep in mind that there is a
+{\it lot} of functionality in other namespaces, and it's {\it all}
+documented here, despite the title.  The major difference is that afw
+has a fair amount of readable documentation here which goes above and
+beyond the standard ``here is the definition of class foo and here are
+all of its constructors.''  The main page links directly to a handful
+of useful writeups, such as {\it How to display images}.
+
+The {\it Namespaces} and {\it Classes} tabs will be your workhorses.
+Clicking on the Namespace tab yields an alphabetical list of
+namespaces.  One quirk: some namespaces within afw are listed first,
+because afw is first alphabetically; but others are listed under
+lsst::afw. (Note: the '::' separator is C++'s equivalent of Python's
+'.' separator for namespaces.)  The reason for this is that some
+namespaces were defined in Python and some in C++; Doxygen makes the
+former appear as afw::xxxx while the latter appear as lsst::afw::xxxx.
+Although of no real significance, it can be confusing: clicking on
+afw::image yields a very boring page containing only testUtils and
+utils, while clicking on lsst::afw::image yields the richly detailed
+page you really wanted.  
+
+Classes are the abstract definitions of what we previously referred to
+as ``objects.'' For example, lsst::afw::image::ImageF is a class.
+When we use the constructor lsst::afw::image::ImageF(filename), it
+returns an object of that type.  Internally, classes contain data
+members (for example, the size of the image), but these are generally
+not accessible externally.  All external manipulations are supposed to
+be done using the methods listed.  Note that if you go to the Classes
+tab, you will {\it not} find lsst::afw::image::ImageF. Rather, you
+will find \texttt{lsst::afw::image::Image< PixelT >}.  This is
+because Image is a {\it templated} class.  The bit in angle brackets
+is a stand-in for F, D, or I depending on whether the image is float,
+double, or int.  Templates allow C++ programmers to write the code
+once, and have the compiler ``expand the template'' for them, rather
+than write essentially the same code over again for each new type.
+
+Go ahead and click on the \texttt{lsst::afw::image::Image< PixelT >}
+you find listed in the Namespaces tab.  As promised in the previous
+chapter, you will find all the gory detail of all the different
+constructors and operators that have been defined.  (Note: rhs and lhs
+stand for right-hand side and left-hand side respectively.)  You will
+often see the same operator defined multiple times.  For example, '-='
+is defined once for a scalar rhs and once for an image rhs.  This is
+what allows you, the Python programmer, to put either type on the rhs
+and have it just work automatically.
+
+A further word on navigation: at the top of the page you see the
+clickable text \texttt{lsst::afw::image::Image}.  Note that {\it each
+  item separated by :: is separately clickable}.  So if you want to
+see what else is in the \texttt{lsst::afw::image} namespace, click on
+the first \texttt{image}; to see what else is in the
+\texttt{lsst::afw} namespace, click on \texttt{afw}, etc.  This is
+often a useful way to get where you want, if you find the
+semi-alphabetical listing of namespaces in the Namespaces tab too
+confusing.
+
+For completeness, we also describe the less oft-used tabs.  The {\it
+  Related Pages} tab contains a fairly long list of pages which are
+meant to be tutorials or introductions in the style of those linked to
+from the Main Page.  But many of these pages are blank, and some of
+the non-blank ones have syntax errors or are out of date.  These may
+still be useful as a rough guide to how the developers intended the
+code to be used, but do not expect them to work verbatim.  Ignore the
+{\it Modules} tab; ``module'' is not a well-defined concept as is
+namespace or class, and here it contains an odd collection of things.
+The {\it Files} and {\it Directories} tabs list all source code files and
+directories; while straightforward, these are not immensely useful to
+the beginner.  But note that everything is clickable, so if you must
+hunt through source code files and directories, doing it here may be
+more convenient than doing it at your Unix prompt.  The {\it Examples}
+tab will be useful mainly for C++ programmers.
+
+Ready?  Fasten your seat belts for a quick tour through LSST land!
+
+\section{lsst::afw}
+
+The application framework defines basic behavior of images, background
+models, source detections, and the like, as well as supporting actors
+such as bounding boxes. At the highest level (\url{http://www.astro.princeton.edu/~rhl/LSST/Doxygen/htmlDir/namespacelsst_1_1afw.html}\footnote{Not
+  to be confused with
+  \url{http://www.astro.princeton.edu/~rhl/LSST/Doxygen/htmlDir/namespaceafw.html},
+  as mentioned above.}) we see only eight items, the namespaces
+\texttt{cameraGeom, coord, detection, display, formatters, geom,
+  image}, and \texttt{math}.  Rest assured, there is a lot within!
+The really useful namespaces are \texttt{detection, display}, and
+\texttt{image}.  We'll start with \texttt{image} because it's so
+fundamental.
+
+%\footnote{For
+%  completeness, scons and SconsUtils are for compiling the C++ code;
+%  cameraGeom defines things like amps, ccds, and rafts; and geom
+%  defines ellipses.}  
+
+\subsection{lsst::afw::image}
+
+Defines basic behavior of images.
+
+\subsection{lsst::afw::detection}
+
+Tools for detecting sources in images.
+
+\subsection{lsst::afw::display}
+
+Tools for displaying images and (presumably) associated helpers like
+bounding boxes.
+
+\section{lsst::meas}
+
+\section{lsst::ip}
+
+\subsection{lsst::ip::isr}
+
+\subsection{lsst::ip::diffim}

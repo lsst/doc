@@ -1,0 +1,31 @@
+# -*- python -*-
+#
+Import('env')
+import eups, os
+
+doxygen_conf = "doxygen.conf"
+htmlDir = "htmlDir"
+
+def writeDoxygen_conf(products=None):
+
+    import writeDoxyConfig
+
+    if products == None:
+        products = []
+        for prod in eups.Eups().getSetupProducts():
+            products.append(prod.name)
+
+    doxyconfScript = writeDoxyConfig.main(products, verbose=True, htmlDir=htmlDir)
+
+    fp = open(doxygen_conf, 'w')
+    fp.write(doxyconfScript + "\n")
+    fp.close()
+
+
+products = ["meas_astrom", "afw"]
+writeDoxygen_conf(products)
+
+
+env.Clean(".", htmlDir)
+doxy = env.Doxygen(htmlDir, doxygen_conf)
+

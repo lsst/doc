@@ -1,0 +1,76 @@
+# -*- python -*-
+Import('env')
+import os
+import eups
+import re
+
+
+################
+# machine-write a .tex file for currently setup packages
+# We'll \input this file in the lsstManual.tex
+pkgFile = "lsstPackages.tex"
+
+# copy the final pdf to the root directory
+def moveToRoot(target=None, source=None, env=None):
+    for t in target:
+        if re.search(".pdf$", t.name):
+            f = os.path.join("latex", t.name)
+            # despite great effort, could not get os.rename() to work here
+            os.system("cp " + f + " " + Dir("#").abspath)
+
+
+# this writes the lsstPackages.tex wrapper file
+# we do this to pull in latex from the setup package's doc/ directories
+# This function write the wrapper .tex file to \input the
+#   package .tex files with an appropriate path prepended.
+# We do this by renewing out own \lsstinput command with the desired path
+def writePackageWrapper(pkgFile):
+    pkgs = eups.Eups().getSetupProducts()
+
+    fp = open(pkgFile, 'w')
+    fp.write("\\newcommand{\lsstinput}{}\n")
+    for pkg in pkgs:
+        prodDir = eups.productDir(pkg.name)
+        pkgTexDir = os.path.join(prodDir, "doc", "latex")
+
+        # for each file, renew our latex \lsstinput command
+        #   so it prepends an absolute path
+        if os.path.exists(os.path.join(pkgTexDir, "package.tex")):
+            fp.write("\\renewcommand{\lsstinput}[1]{{\input{"+pkgTexDir+"/#1}}}\n")
+            fp.write("\lsstinput{package}\n")
+    fp.close()
+
+# ideally, this could be AddPreAction'd on to pdfOutput, but scons
+# is too smart for it's own good.  It does it's dependency check
+# before any pre-actions fire, so it notices the missing
+# (not-yet-generated) lsstPackages.tex and exits with a missing dep error.
+writePackageWrapper(pkgFile)
+
+
+#################
+# build the latex
+#
+filebase = "lsstManual"
+
+pdfOutput = env.PDF(target = filebase + '.pdf', source = filebase + '.tex')
+
+#env.AddPreAction(pdfOutput, writePackageWrapper)
+env.AddPostAction(pdfOutput, moveToRoot)
+
+# have to list the machine generated file specifically for cleaning
+Clean(".", ["lsstPackages.tex", "../"+filebase+".pdf"])
+Depends(pdfOutput, Glob("*.tex"))
+
+
+##################
+# make the html
+#
+htmlManDir = "htmlDir"
+latex2html = 'latex2html -split 3 -html_version "4.0" -local_icons -mkdir -dir ' + htmlManDir + ' $SOURCE'
+Latex2HtmlAction = Action(latex2html)
+Latex2HtmlBuilder = Builder(action = Latex2HtmlAction, chdir=1)
+env.Append(BUILDERS = {'Latex2Html' : Latex2HtmlBuilder})
+
+htmlOutput = env.Latex2Html(source = filebase + '.tex')
+Depends(htmlOutput, Glob("*.tex"))
+Clean(".", htmlManDir)

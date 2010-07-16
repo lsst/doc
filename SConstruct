@@ -1,19 +1,26 @@
 # -*- python -*-
 #
 #
-import os
+import os, sys
 import lsst.SConsUtils as scons
 
-env = scons.makeEnv("devenv_doc", r"$HeadURL: $", [])
+env = scons.makeEnv("devenv_doc", r"$HeadURL: $", [ ])
 
-targ = "AppsForSci"
-pdfOutput = env.PDF(target=targ+'.pdf',source=targ+'.tex')
-Depends(pdfOutput, Split('AppsForSci.tex'))
 
-cleanFiles = ["*~", "config.log"]
-texSuffixes = [".aux", ".log", ".out", ".pdf"]
-cleanFiles += map(lambda x: targ+x, texSuffixes)
-scons.CleanTree(cleanFiles)
+# farm out the SCoscripts
+for d in ["latex", "doxygen"]:
+    try:
+        SConscript(os.path.join(d, "SConscript"))
+    except Exception, e:
+        print >> sys.stderr, "Error processing file %s:" % (os.path.join(d, "SConscript"))
+        print e
+        
+# cleaning
+rootClean  = r"*~ config.log"
+#latexClean = r"*.aux *.log *.out *.pdf"
+
+scons.CleanTree(rootClean)
+#scons.CleanTree(latexClean, dir="latex")
 
 env.Declare()
 env.Help("""

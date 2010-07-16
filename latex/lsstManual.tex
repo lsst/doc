@@ -1,0 +1,55 @@
+\documentclass{book}
+\usepackage{hyperref}
+\usepackage{verbatim}
+\usepackage{xspace}
+
+%\def\t{\texttt}
+%\newcommand{\t}[1]{\texttt{#1}}
+
+\title{Scientists' Guide to the LSST Applications Software}
+\author{David Wittman, Desire\'{e} Abbott, and a cast of thousands}
+
+\begin{document}
+\maketitle
+
+
+\chapter*{Purpose of this Document\label{chap-purpose}}
+\input{purpose}
+
+\chapter*{Acknowledgments\label{chap-acknowledgements}}
+\input{acknowledgements}
+
+
+\chapter{Hello, world\label{chap-hello}}
+\input{helloworld}
+
+\chapter{Overview of LSST Packages\label{chap-overview}}
+\input{overview}
+
+
+\chapter{Extended examples\label{chap-examples}}
+\input{examples}
+
+\chapter{How do I...\label{chap-howto}}
+\input{howto}
+
+\chapter{Documentation\label{chap-doc}}
+\input{documentation}
+
+%
+% Here's where we want to include chapters from each package.
+% 
+\input{lsstPackages}
+
+
+\appendix
+
+\chapter{Installing the LSST Software Stack\label{appendix-stackinstall}}
+\input{install}
+
+\chapter{Overview of Third-Party Tools\label{appendix-thirdparty}}
+\input{thirdpartytools}
+
+
+\end{document}
+
