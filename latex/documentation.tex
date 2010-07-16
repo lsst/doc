@@ -11,9 +11,13 @@
 \newcommand{\ttsetup}{\texttt{setup}\xspace}
 \newcommand{\ttscons}{\texttt{scons}\xspace}
 \newcommand{\ttlsstinput}{\texttt{\textbackslash lsstinput}\xspace}
-\newcommnad{\ttlatex2html}{\texttt{latex2html}\xspace}
+\newcommand{\ttlatextohtml}{\texttt{latex2html}\xspace}
 
 \newcommand{\ttdoxygenconf}{\texttt{doxgyen.conf}\xspace}
+
+\newcommand{\ttpackage}{\texttt{package.tex}\xspace}
+
+\newcommand{\todo}[1]{{\bfseries\large TODO: #1}}
 
 % latex, html and doxygen
 \section{Documentation Overview\label{sec-doc-overview}}
@@ -22,10 +26,13 @@ LSST software is documented in two fundamental ways:
 
 \begin{description}
   
-\item[The LSST Developer's Manual] This is a single document,
-  written in \LaTeX, and is intended to be a `manual' in the traditional
-  sense of the word.  It's available online in HTML format, and also
-  as a PDF document. You're currently reading the Developer's Manual!
+\item[The LSST Developer's Manual] This is a single document, written
+  in \LaTeX, and is intended to be a `manual' in the traditional sense
+  of the word.  It's available online in HTML format, and also as a
+  PDF document. You're currently reading the Developer's Manual!  The
+  HTML version of the current manual can be found online at \todo{add
+    location of html manual}, and the PDF version is availabe at:
+  \todo{add location of pdf manual}.
 
 \item[The Doxygen source code documentation] This is a source code
   reference, containing summaries of the various classes and
@@ -37,32 +44,34 @@ LSST software is documented in two fundamental ways:
   source code, with additional information (variable definitions,
   brief summaries, etc) taken from specific comments included by the
   programmer. Because of the way it is used (`browsing' source code),
-  it is available only in HTML.  For more information on Doxygen, see
-  \url{http://www.doxygen.org}.
+  it is available only in HTML.  The current LSST Doxygen
+  documentation can be found at:
+  \url{http://dev.lsstcorp.org/doxygen/trunk/}.  For more information
+  about Doxygen software, see \url{http://www.doxygen.org}.
     
 \end{description}
 
-Each of these forms of documentation are available for individual
-packages, and for the entire LSST project.  Here, we'll describe the
+Each of these forms of documentation is available for individual
+products, and for the entire LSST project.  Here, we'll describe the
 details of the LSST documentation system.
 
 
-% main doc package
-\section{The Main Documentation Package, \ttdevenvdoc\label{sec-maindoc}}
+% main doc product
+\section{The Main Documentation Product, \ttdevenvdoc\label{sec-maindoc}}
 
-The main documentation package lives in \ttdevenvdoc, and much
+The main documentation product lives in \ttdevenvdoc, and much
 of the documentation contained in the Developer's Manual can be found
 here.  However, the parts of the manual dealing with individual
-packages are stored with the relevant packages, and are pulled into
+products are stored with the relevant products, and are pulled into
 the manual when it is compiled.
 
 Conversely, there is very little Doxygen documentation stored in
-\ttdevenvdoc.  When built, the package collects Doxygen
-configuration files from all available (\ttsetup) packages and creates a
+\ttdevenvdoc.  When built, the product collects Doxygen
+configuration files from all available (\ttsetup) products and creates a
 single comprehensive Doxygen reference.
 
-The documentation package differs in structure from other standard
-LSST packages, containing only \texttt{doxygen/} and \texttt{latex/}
+The documentation product differs in structure from other standard
+LSST products, containing only \texttt{doxygen/} and \texttt{latex/}
 directories.
 
 \subsection{The Main \LaTeX Documentation\label{sec-mainlatex}}
@@ -75,9 +84,9 @@ The highlights of the \texttt{latex/} directory include:
     statements for the various chapters.
   \item [\ttlsstpackages] This is a machine-generated file which
     \ttinput s the \LaTeX{} documentation for the
-    individual LSST packages.  Its creation is handled in the
+    individual LSST products.  Its creation is handled in the
     \texttt{latex/SConscript} file, where the absolution paths to the
-    currently setup package documentation are prepended to the
+    currently setup product documentation are prepended to the
     \ttinput filename.
   \item [{\itshape everything-else}\tttex] The remaining
     *\tttex files contain the chapters which are imported
@@ -85,32 +94,44 @@ The highlights of the \texttt{latex/} directory include:
   \item[\texttt{figures/}] This subdirectory contains any figures
     used in the manual.
   \item[\texttt{htmlDir/}] This subdirectory contains an HTML
-    version of the manual, generated with \ttlatex2html.  The
+    version of the manual, generated with \ttlatextohtml.  The
     directory and its contents will not exist before \ttscons is
     run.
 \end{description}
 
-The importing of the individual package documentation requires a bit
+{\bfseries If you'd like to edit existing documentation}, the rest of
+this section is unlikely to be of interest (or use) to you.  All you
+have to do is find the appropriate \tttex file and make your changes.
+Then run \ttscons to build the new manual.
+
+{\bfseries If you'd like to add a new chapter}, simply put your
+chapter in an appropriately named \tttex file and add an \ttinput
+statement to \ttlsstmanual to import it.
+
+{\bfseries If you'd like to understand how \LaTeX from the individual
+  products gets imported} into the top-level manual, read on.
+
+The importing of the individual product documentation requires a bit
 of explanation.  The system is designed such that the final document
-which gets built (by scons) will pull in the individual package
-documentation from any packages which were \ttsetup (using the
+which gets built (by scons) will pull in the individual product
+documentation from any products which were \ttsetup (using the
 \tteups `\ttsetup' command).
 
 As alluded to in the file explanations above, these \tttex files for
-each package are imported in the \ttlsstpackages file.
+each product are imported in the \ttlsstpackages file.
 During the build, the \texttt{latex/SConscript} code determines which
-packages are \ttsetup (and {\itshape where}) and generates the
+products are \ttsetup (and {\itshape where}) and generates the
 \ttlsstpackages file with an \ttinput statement for each.  However, if
 you look in the \ttlsstpackages file, that's not what you'll see.
 
 It's entirely possible that each imported \tttex file will also
 contain \ttinput statements for files in its own directory tree.  To
-deal with this, {\itshape all individual packages must only use our
+deal with this, {\itshape all individual products must only use our
   own \ttlsstinput command!}  The \ttlsstinput command is a thin
 wrapper for the regular \LaTeX \ttinput command.  For each imported
-package, the \ttlsstpackages file contains two lines: the first renews
+product, the \ttlsstpackages file contains two lines: the first renews
 the \ttlsstinput command to prepend the absolution path for the
-package in question, the second then \ttlsstinput's the package.
+product in question, the second then \ttlsstinput's the product.
 
 When \ttscons is run, the \LaTeX is compiled and
 \texttt{lsstManual.pdf} is created in the root directory of
@@ -135,8 +156,57 @@ When \ttscons is run, the Doxygen output will be created in
 \texttt{doxygen/htmlDir}.
 
 
-% individual package documentation
-\section{Documenting an Individual Package\label{sec-packagedoc}}
+% individual product documentation
+\section{Documenting an Individual Product\label{sec-productdoc}}
+
+The documentation for each individual product is within the product's
+\texttt{doc/} directory.  There, you'll find a \ttdoxygenconf file
+(which you should have no need to edit), and a \texttt{latex/}
+subdirectory.
 
 
+\subsection{Standard LSST Doxygen Coding Practices\label{sec-doxypractices}}
+
+The LSST Coding practices are described in detail on the LSST Trac
+wiki.  To avoid duplication (and inevitable inconsistency), we simply
+refer you to:
+\url{http://dev.lsstcorp.org/trac/wiki/DocumentationStandards}.
+
+When \ttscons is run, the Doxygen HTML will be written to \texttt{doc/htmlDir/}.
+
+
+\subsection{Contributing to the Manual Entry for a Product\label{sec-productlatex}}
+
+The \texttt{doc/latex/} directory should contain at least two \tttex
+files: one named after the product itself
+(eg. \texttt{meas\_astrom.tex}, \texttt{afw.tex}), and one named
+\ttpackage.  {\bfseries Documentation should go in the \ttpackage
+  file}.  It is the \ttpackage file which will be imported into the
+top-level manual when \ttdevenvdoc is built.  The \tttex file bearing
+the name of the product is just a thin wrapper which \ttinput's the
+\ttpackage file to build a local PDF copy of the manual for the
+product.
+
+If you'd like to put your section/subsection in a separate \tttex
+file, feel free to do so.  However, {\bfseries in order for the
+  documentation to be properly imported into the top-level manual, you
+  must use the \ttlsstinput command rather than the normal \LaTeX
+  \ttinput command!}
+
+Not all products are documented in the \LaTeX manual, so you may find
+that there's no \texttt{doc/latex/} directory in a some products.  If
+you'd like to add one, please do!
+
+Here's a checklist of things to do to add latex documentation to a product:
+
+\begin{enumerate}
+  \item Create the \texttt{doc/latex/} directory.
+  \item Create \texttt{doc/latex/{\itshape myproduct}.tex} (adapt it
+    from a product which already has documentation).
+  \item Create \texttt{doc/latex/package.tex} with your contribution to the manual.
+  \item Create \texttt{doc/latex/SConscript} to build it (again, adapt
+    it from the \texttt{SConscript} file in a product which already
+    has documentation).
+  \item Edit \texttt{SConstruct} to call the new SConscript.
+\end{enumerate}
 
