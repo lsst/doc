@@ -1,5 +1,20 @@
 % documentation
 
+\renewcommand{\LaTeX}{LaTeX\xspace}
+
+\newcommand{\tttex}{\texttt{.tex}\xspace}
+\newcommand{\ttlsstpackages}{\texttt{lsstPackages.tex}\xspace}
+\newcommand{\ttinput}{\texttt{\textbackslash input}\xspace}
+\newcommand{\ttlsstmanual}{\texttt{lsstManual.tex}\xspace}
+\newcommand{\ttdevenvdoc}{\texttt{devenv/doc}\xspace}
+\newcommand{\tteups}{\texttt{eups}\xspace}
+\newcommand{\ttsetup}{\texttt{setup}\xspace}
+\newcommand{\ttscons}{\texttt{scons}\xspace}
+\newcommand{\ttlsstinput}{\texttt{\textbackslash lsstinput}\xspace}
+\newcommnad{\ttlatex2html}{\texttt{latex2html}\xspace}
+
+\newcommand{\ttdoxygenconf}{\texttt{doxgyen.conf}\xspace}
+
 % latex, html and doxygen
 \section{Documentation Overview\label{sec-doc-overview}}
 
@@ -8,7 +23,7 @@ LSST software is documented in two fundamental ways:
 \begin{description}
   
 \item[The LSST Developer's Manual] This is a single document,
-  written in \latex, and is intended to be a `manual' in the traditional
+  written in \LaTeX, and is intended to be a `manual' in the traditional
   sense of the word.  It's available online in HTML format, and also
   as a PDF document. You're currently reading the Developer's Manual!
 
@@ -22,9 +37,10 @@ LSST software is documented in two fundamental ways:
   source code, with additional information (variable definitions,
   brief summaries, etc) taken from specific comments included by the
   programmer. Because of the way it is used (`browsing' source code),
-  it is available only in HTML.
+  it is available only in HTML.  For more information on Doxygen, see
+  \url{http://www.doxygen.org}.
     
-\end{list}
+\end{description}
 
 Each of these forms of documentation are available for individual
 packages, and for the entire LSST project.  Here, we'll describe the
@@ -32,29 +48,95 @@ details of the LSST documentation system.
 
 
 % main doc package
-\section{The Main Documentation Package, \texttt{devenv/doc}\label{sec-maindoc}}
+\section{The Main Documentation Package, \ttdevenvdoc\label{sec-maindoc}}
 
-The main documentation package lives in \texttt{devenv/doc}, and much
+The main documentation package lives in \ttdevenvdoc, and much
 of the documentation contained in the Developer's Manual can be found
 here.  However, the parts of the manual dealing with individual
 packages are stored with the relevant packages, and are pulled into
 the manual when it is compiled.
 
 Conversely, there is very little Doxygen documentation stored in
-\texttt{devenv/doc}.  When built, the package collects Doxygen
-configuration files from all available (setup) packages and creates a
+\ttdevenvdoc.  When built, the package collects Doxygen
+configuration files from all available (\ttsetup) packages and creates a
 single comprehensive Doxygen reference.
 
 The documentation package differs in structure from other standard
 LSST packages, containing only \texttt{doxygen/} and \texttt{latex/}
 directories.
 
-\subsection{The Main \latex Documentation}
+\subsection{The Main \LaTeX Documentation\label{sec-mainlatex}}
 
+The highlights of the \texttt{latex/} directory include:
 
+\begin{description}
+  \item [\ttlsstmanual] This is the central \LaTeX document that gets
+    built.  However, it contains only \ttinput
+    statements for the various chapters.
+  \item [\ttlsstpackages] This is a machine-generated file which
+    \ttinput s the \LaTeX{} documentation for the
+    individual LSST packages.  Its creation is handled in the
+    \texttt{latex/SConscript} file, where the absolution paths to the
+    currently setup package documentation are prepended to the
+    \ttinput filename.
+  \item [{\itshape everything-else}\tttex] The remaining
+    *\tttex files contain the chapters which are imported
+    into \ttlsstmanual.
+  \item[\texttt{figures/}] This subdirectory contains any figures
+    used in the manual.
+  \item[\texttt{htmlDir/}] This subdirectory contains an HTML
+    version of the manual, generated with \ttlatex2html.  The
+    directory and its contents will not exist before \ttscons is
+    run.
+\end{description}
+
+The importing of the individual package documentation requires a bit
+of explanation.  The system is designed such that the final document
+which gets built (by scons) will pull in the individual package
+documentation from any packages which were \ttsetup (using the
+\tteups `\ttsetup' command).
+
+As alluded to in the file explanations above, these \tttex files for
+each package are imported in the \ttlsstpackages file.
+During the build, the \texttt{latex/SConscript} code determines which
+packages are \ttsetup (and {\itshape where}) and generates the
+\ttlsstpackages file with an \ttinput statement for each.  However, if
+you look in the \ttlsstpackages file, that's not what you'll see.
+
+It's entirely possible that each imported \tttex file will also
+contain \ttinput statements for files in its own directory tree.  To
+deal with this, {\itshape all individual packages must only use our
+  own \ttlsstinput command!}  The \ttlsstinput command is a thin
+wrapper for the regular \LaTeX \ttinput command.  For each imported
+package, the \ttlsstpackages file contains two lines: the first renews
+the \ttlsstinput command to prepend the absolution path for the
+package in question, the second then \ttlsstinput's the package.
+
+When \ttscons is run, the \LaTeX is compiled and
+\texttt{lsstManual.pdf} is created in the root directory of
+\ttdevenvdoc.  At the same time, an HTML version of the manual will be
+created in \texttt{latex/htmlDir}.
+
+\subsection{The Main Doxygen Documentation\label{sec-maindoxygen}}
+
+Doxygen builds its documentation by digesting the source code for a
+project.  The construction of the LSST doxygen is controlled by a
+\ttdoxygenconf file which identifies the locations (directories) of the
+source code to be scanned.  The \ttdevenvdoc \texttt{doxygen/}
+directory contains no \ttdoxygenconf file, but rather a python script
+\texttt{writeDoxyConfig.py} which is executed when \ttscons is run.
+As you might suspect, \texttt{writeDoxyConfig.py} scans all available
+\ttdoxygenconf files (ie. those \ttsetup via \tteups) and generates a
+master \ttdoxygenconf.  This machine-generated file is then used to
+build the top-level Doxygen.  This happens when \ttscons is run and is
+handled in the \texttt{doxygen/SConscript} file.
+
+When \ttscons is run, the Doxygen output will be created in
+\texttt{doxygen/htmlDir}.
 
 
 % individual package documentation
 \section{Documenting an Individual Package\label{sec-packagedoc}}
+
 
 
