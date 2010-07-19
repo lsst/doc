@@ -1,6 +1,6 @@
 % install
 
-%\section{How do I install all this stuff?}
+\section{How do I install all this stuff?}
 
 The place to start is
 \url{http://lsstdev.ncsa.uiuc.edu/trac/wiki/Installing}.  From here
@@ -80,6 +80,51 @@ To use the software you must perform two configuration steps:
   \texttt{setup meas.astrom}.
 
 \end{enumerate}
+
+\section{Routinely updating your LSST Software Stack}
+
+The pseudo-package LSSTPipe contains everything you need to run the pipeline; you can re-install at any time to get the latest versions of required pipeline packages, and declare them as current (the default version to be used):
+\texttt{lsstpkg install --current LSSTPipe}
+
+When installation is complete, you must run \texttt{setup} on each newly installed package:
+\texttt{setup afw}
+Appending \texttt{--current} to the end declares your freshly installed version of \texttt{afw} as current:
+\texttt{setup afw --current} 
+
+If you wish to setup a different version which is already installed but not declared current:
+\texttt{setup afw 3.5.2} 
+
+NOTE: If there is no revision declared current at all, \texttt{setup} will fail and print a message that it doesn't have a current version of that package.
+
+You will most likely find it helpful to understand what the digits in the version numbers mean:
+\begin{verbatim}
+3.0.1
+    |
+\end{verbatim}
+Indicates minor revisions, such as bug fixes, which can happen quickly and often.
+\begin{verbatim}
+3.0.1
+  |
+\end{verbatim}
+If this number changes, everything that depends on the package must be upgraded as well.
+
+
+
+\section{Update after a critical bug fix}
+Sometimes, after a critical bug fix, you might need this latest version before it is available on the distribution server, which means that re-installing LSSTPipe will not deliver the most recent revision.  Here are some notes on what to do in these circumstances.
+
+\begin{itemize}
+\item To view all revisions of a package: \texttt{lsstpkg list afw}
+
+\item To list package versions installed on your local machine; this command lists all tags, such as \texttt{Current} or \texttt{Setup}, associated with that particular package:  \texttt{eups list afw}
+
+\item To install a new package, or a new revision of a package, say afw 3.6.0: \texttt{lsstpkg install afw 3.6.0}
+\begin{itemize}
+\item To also declare this revision as current:  \texttt{lsstpkg install --current afw 3.6.0}
+\end{itemize}
+\end{itemize}
+ 
+\vskip0.5in
 
 Now you are ready to try the hello world examples in
 Chapter~\ref{chap-hello}! 
