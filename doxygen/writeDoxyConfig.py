@@ -90,7 +90,7 @@ class Doxyfile(object):
     #############
     # print ourself as a list of entries
     def __str__(self):
-        return ("# %s\n" % self.productName) + \
+        return ("# %s\n\n" % self.productName) + \
                "\n".join(["%-30s = %s" % item for item in self.entries.items()])
 
     ############
