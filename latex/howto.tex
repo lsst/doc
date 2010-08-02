@@ -7,3 +7,26 @@ goal, what are the classes that enable that goal?  This chapter
 provides answers for common tasks. If you encounter a task you think
 should be listed here, just send it to us and we'd be happy to include
 it.
+
+\section{python}
+
+\subsection{Importing an LSST package in python}
+
+on the surface, importing an LSST package is just like importing any other python package:
+\begin{verbatim}
+import lsst.afw.image
+import lsst.meas.algorithms
+\end{verbatim}
+
+However, if you look a little harder there's something odd going on; \verb|lsst/afw/image| and
+\verb|lsst/meas/algorithms| are not subdirectories of the same parent (they refer to
+\verb|$AFW_DIR/python/lsst/afw/image| and \hfil\break\verb|$MEAS_ALGORITHMS_DIR/python/lsst/meas/algorithms| respectively);
+that's not something that python's \verb|import| command understands.  What's more, there is no file
+\verb|$AFW_DIR/python/lsst/__init__.py|.
+
+The trick is that there \textit{is} a file \verb|$BASE_DIR/python/lsst/__init__.py|, and it installs a custom
+package importer into \verb|sys.meta_path| (this requires python 2.5; the details are in PEP 302 if you care).
+This importer is not restricted to loading a sub-module from a subdirectory of the directory where its parent
+module was loaded from.  Thus, if your sys.path contains multiple directories that contain an \verb|lsst|
+module, then a submodule \verb|lsst.foo| can appear below any of those directories.
+
