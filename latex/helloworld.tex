@@ -5,6 +5,7 @@ to source loadLSST.csh or loadLSST.sh before starting Python.  These
 examples are designed to be run in interactive mode, so just type
 \texttt{python} to start and copy/paste the examples in.
 
+Python is much nicer to use interactively if you ask it to remember your command history and provide word completion; see Appendix \ref{appendix-interactivePython}.
 
 \section{Reading and displaying a FITS image}
 
@@ -298,6 +299,11 @@ m = afwImg.MaskU(a.getDimensions()) # mask
 mi = afwImg.MaskedImageF(a,m,v) # put it all together into one maskedImage
 \end{verbatim}
 
+That last line is a bit of a bore as you have to remember the \verb|F|;  fortunately you can get the computer to do the work by saying
+\begin{verbatim}
+mi2 = afwImg.makeMaskedImage(a, m, v)
+\end{verbatim}
+
 Alternatively, you can create a masked image and then tell Python to get the components.  In the following example, we generate a masked image of size 100 x 100 pixels, set all of the pixels in the variance image to 1.0, and set all of the pixels in the base (??) image to 32.0.  Then, we assign the ``saturated'' mask plane to the mask, and to make things a bit more interesting, we apply the mask to pixels (50,50) and (60,60).  
 
 \begin{verbatim}
@@ -347,11 +353,10 @@ mask.set(60,60,bitMask)
 
 ctrl = math.StatisticsControl()
 ctrl.setAndMask(bitMask)
-stats = math.makeStatistics(mi,math.NPOINT,ctrl)
-print stats.getValue(math.NPOINT)
+stats = math.makeStatistics(mi,math.NPOINT,ctrl).getValue()
 \end{verbatim}
 
-Now, the value printed is 9998, which is perfect because we masked 2 pixels.
+Now, the value printed is 9998, which is perfect because we masked 2 pixels.  And we avoided typing \verb|math.NPOINT| twice (which only works if you're asking for one thing).
 
 \section{Exposures}
 As you have probably already noticed, calling an object an ``image'' in the LSST environment is not as simple as it sounds - there are several classes which a layperson would consider images, but an astronomer using the LSST software must know the difference.

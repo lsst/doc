@@ -31,6 +31,9 @@ def writePackageWrapper(pkgFile):
     fp.write("\\newcommand{\lsstinput}{}\n")
     for pkg in pkgs:
         prodDir = eups.productDir(pkg.name)
+        if prodDir in (None, "none"):
+            continue
+        
         pkgTexDir = os.path.join(prodDir, "doc", "latex")
 
         # for each file, renew our latex \lsstinput command

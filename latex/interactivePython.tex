@@ -1,0 +1,58 @@
+% interactive python
+
+Python is able to remember your history from one session to another, and to use TAB to help you with your
+typing by completing variable names and object methods.
+
+One way to get these features is to use \verb|iPython| (\url{http://ipython.scipy.org/moin/}).  If you want to avoid installing another package, you can home-brew your environment.
+
+\begin{itemize}
+  \item Create a file \verb|$HOME/.pythonstartup|
+  \item Set the environment variable \verb|PYTHONSTARTUP| to point there, e.g. \verb|export PYTHONSTARTUP=$HOME/.pythonstartup| (or the csh equivalent with \verb|setenv|)
+  \item Put the following lines in \verb|$HOME/.pythonstartup|:
+\begin{verbatim}
+import re, os
+
+# The place to store your command history between sessions
+histfile=os.environ["HOME"] + "/.python-history"
+            
+try:
+    # Try to set up command history completion/saving/reloading
+    import readline, atexit, rlcompleter
+
+    isEditline = False
+    try:
+        if re.search(r"^/System/Library", readline.__file__): # editline; the BSD rewrite of readline
+            isEditline = True
+    except AttributeError:
+        pass
+
+    if isEditline:
+        readline.parse_and_bind("bind ^I rl_complete")
+        readline.parse_and_bind("bind ^R em-inc-search-prev")
+        readline.parse_and_bind("bind ^U ed-move-to-beg em-next-word")
+    else:                               # readline
+        readline.parse_and_bind('tab: complete')
+
+    readline.set_history_length(-1)     # don't truncate history list
+
+    try:
+        readline.read_history_file(histfile)
+    except IOError:
+        pass  # It doesn't exist yet.
+
+    def savehist(nsave=1000):
+        try:
+            readline.set_history_length(nsave)
+            readline.write_history_file(histfile)
+        except Exception, msg:
+            print 'Unable to save Python command history:', msg
+
+    atexit.register(savehist)
+    del atexit
+except ImportError:
+    pass
+\end{verbatim}
+
+That may look complicated, but it should work on os/x as well as linux boxes.  And you should see the version that I \textit{really} use...
+
+\end{itemize}
