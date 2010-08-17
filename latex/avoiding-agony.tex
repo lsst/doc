@@ -1,0 +1,117 @@
+
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\scons}{\code{scons}}
+\newcommand{\make}{\code{make}}
+
+\newcommand{\heading}[1]{\paragraph{#1}\rule{0pt}{0pt}}
+
+\newenvironment{codesize}
+               {\begin{small}}
+               {\end{small}}
+%               {\begin{scriptsize}}
+%               {\end{scriptsize}}
+
+\newenvironment{transcript}%
+               {%\par\noindent\ignorespaces%
+                 \vspace{4pt}\par\noindent%
+                 \rule{4pt}{4pt}\hspace{1cm}%
+                 \begin{minipage}[t]{0.8\textwidth}%
+                   \begin{codesize}%
+                     %\begin{verbatim}}%
+                     \tt}%
+               %{\end{verbatim}
+               {%
+                   \end{codesize}%
+                 \end{minipage}%
+                 \noindent\ignorespacesafterend\vspace{8pt}\par}
+
+\section{How to avoid major sources of agony while developing LSST code}
+
+\subsection{\scons\ likes to waste your time}
+
+The \scons\ policy is to guarantee a correct build by default.  That
+means doing a lot of work, which means wasting a lot of your time
+checking to see whether you did an operating system upgrade since your
+last recompile, 10 seconds ago.  Hey, it could happen.
+
+\heading{Use \scons\ in interactive mode.}
+
+\begin{transcript}
+\begin{verbatim}
+> scons --interact
+scons: Reading SConscript files ...
+Checking if  CC is really gcc...(cached) yes
+[...]
+scons: done reading SConscript files.
+scons>>>
+\end{verbatim}
+\end{transcript}
+
+\noindent
+then build \emph{only the targets you need} using the \code{build} command:
+
+\begin{transcript}
+\begin{verbatim}
+scons>>> build python
+\end{verbatim}
+\end{transcript}
+
+\noindent or
+
+\begin{transcript}
+\begin{verbatim}
+scons>>> build tests/testMyCode
+\end{verbatim}
+\end{transcript}
+
+
+
+
+\heading{Use as many CPUs as you can get your hands on.}
+
+\begin{transcript}
+\begin{verbatim}
+scons -j 8
+\end{verbatim}
+\end{transcript}
+
+\noindent
+Ignore all complaints that you're hogging the computer.  You're an
+LSST developer.  You're worth it.
+
+
+
+
+
+\heading{Avoid recomputing dependencies every time.}
+
+\begin{transcript}
+\begin{verbatim}
+scons --implicit-cache --implicit-deps-unchanged
+\end{verbatim}
+\end{transcript}
+
+\noindent
+This tells \scons\ not to re-scan the source files looking for
+\code{#include} statements in order to determine dependencies.  If you
+actually do change the dependencies, you'll want to run \scons\ in
+``vanilla'' mode to pick up those changes.
+
+
+\subsection{\scons\ is a delicate princess}
+
+Don't use \code{ctrl-C} to interrupt \scons\ during its configuration
+phase.  It will cache incorrect configuration information.  In
+practice, the only solution is then to do the excruciating:
+
+\begin{transcript}
+\begin{verbatim}
+rm -Rf .scon*
+\end{verbatim}
+\end{transcript}
+
+\noindent
+in order to clear the caches.  This then means that \scons\ will
+believe that everything needs to be recompiled.  Ouch.
+
+
