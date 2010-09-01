@@ -1,0 +1,31 @@
+\section{Turning on debugging output (often image display)}
+
+Many (but not all) of the LSST production scripts can be configured using the \verb|lsstDebug| package. \verb|lsstDebug| has a very negative view of the world; \verb|lsstDebug.Info(xyz).abc| returns \verb|False| for any value of\verb|xyz| and \verb|abc|.  By convention, packages call it as
+\begin{verbatim}
+import lsstDebug
+display = lsstDebug.Info(__name__).display
+\end{verbatim}
+at the top of their main procedure (the choice of \verb|display| is common but not required); for example in \texttt{python/lsst/meas/utils/sourceDetection.py}. If you do nothing else, this sets \verb|display| to \verb|False|.
+
+More interestingly, I can \verb|import| (or \verb|reload|) a file that loos something like:
+
+\begin{verbatim}
+import sys
+
+import lsstDebug
+
+def DebugInfo(name):
+    di = lsstDebug.getInfo(name)        # N.b. lsstDebug.Info(name) would call us recursively
+    if name in (
+        "lsst.meas.utils.sourceDetection",
+        "lsst.meas.astrom.determineWcs",
+        ):
+        di.display = 1
+
+    return di
+
+lsstDebug.Info = DebugInfo
+\end{verbatim}
+
+Suddenly, \verb|lsst.meas.utils.sourceDetection.display| is set to \verb|True| without my modifying its source or reloading it.
+
