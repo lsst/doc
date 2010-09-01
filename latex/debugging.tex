@@ -5,13 +5,11 @@ Many (but not all) of the LSST production scripts can be configured using the \v
 import lsstDebug
 display = lsstDebug.Info(__name__).display
 \end{verbatim}
-at the top of their main procedure (the choice of \verb|display| is common but not required); for example in \texttt{python/lsst/meas/utils/sourceDetection.py}. If you do nothing else, this sets \verb|display| to \verb|False|.
+at the top of their main procedure (the choice of \verb|display| is common but not required); for example in \texttt{python/lsst/meas/utils/sourceDetection.py}. If you do nothing else, this sets \verb|display| to \verb|False| as \linebreak[4] \verb|lsstDebug.Info(lsst.meas.utils.sourceDetection).display| returns \verb|False|.
 
-More interestingly, I can \verb|import| (or \verb|reload|) a file that loos something like:
+More interestingly, I can \verb|import| (or \verb|reload|) a private file that looks something like:
 
 \begin{verbatim}
-import sys
-
 import lsstDebug
 
 def DebugInfo(name):
@@ -27,5 +25,7 @@ def DebugInfo(name):
 lsstDebug.Info = DebugInfo
 \end{verbatim}
 
-Suddenly, \verb|lsst.meas.utils.sourceDetection.display| is set to \verb|True| without my modifying its source or reloading it.
+I.e. change \verb|lsstDebug.Info("lsst.meas.utils.sourceDetection").display| to return \verb|1|.
+Suddenly,\linebreak[4] \verb|lsst/meas/utils/sourceDetection.py| starts displaying fascinating images without
+my having to modify the file and reload it.
 
