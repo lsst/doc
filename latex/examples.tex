@@ -3,4 +3,93 @@
 \section{Using the ISR to remove instrumental signature from your data}
 
 \section{Writing Sextractor in 100 lines of python}
- 
+
+
+In this example, we will demonstrate how to subtract the background from an Exposure, then locate the sources, and finally perform some calculations on them.  We'll be creating a few policies, which specify the allowed values for certain parameters of the different measurements we'll be using.
+
+First, we have the usual importing of packages, and then the importing of the exposure with which we will be working.
+
+\begin{verbatim}
+import lsst.afw.image as afwImg
+import lsst.afw.display.ds9 as ds9
+import lsst.meas.utils.sourceDetection as sDet
+import lsst.pex.policy as pexPol
+import lsst.afw.detection as afwDet
+import lsst.meas.algorithms as measAlg
+import math
+
+exposure = afwImg.ExposureF('myImage.fits')
+mi = afwImg.ExposureF.getMaskedImage(exposure)
+wcs = afwImg.ExposureF.getWcs(exposure)
+\end{verbatim}
+
+Then we specify the parameters for the background measurement.
+\begin{verbatim}
+bgPol = pexPol.Policy()
+bgPol.add('binsize',30)
+bgPol.add('algorithm','NATURAL_SPLINE')
+\end{verbatim}
+
+\texttt{binsize} is the number of pixels used in the binning when separating the background from the sources.  Smaller numbers give more precision, but cost more time, while larger numbers are faster but less precise.  \texttt{algorithm} is the  type of algorithm used when detecting the background.
+
+First up is the background subtraction, and displaying the resulting image.
+\begin{verbatim}
+background,subtractedImg = sDet.estimateBackground(exposure,bgPol,True)
+mi = afwImg.ExposureF.getMaskedImage(subIm)
+img = afwImg.MaskedImageF.getImage(mi)
+
+ds9.mtv(img)
+\end{verbatim}
+Don't close ds9 here because we'll need it later.
+
+Next, we specify the parameters for the \textit{detection} of sources.
+\begin{verbatim}
+detPol = pexPol.Policy()
+detPol.add('minPixels',10) ## The source must have at least this many pixels
+detPol.add('nGrow',1)
+detPol.add('thresholdValue',30)
+detPol.add('thresholdType','value')
+detPol.add('thresholdPolarity','both')
+\end{verbatim}
+
+The value you specify for \texttt{thresholdValue} will be the result of some trial and error. This is the minimum value that the pixels in a source might have - it can be determined by displaying the subtracted image in ds9 and placing your cursor at the edge of something you know is a source, then reading the value from the ``Value'' field.  Remember to use the subtracted image and not the original to determine this number!  The value of \texttt{minPixels} is the minimum number of adjacent pixels that must have a value of at least \texttt{thresholdValue}.
+
+Now we do the detecting.
+
+\begin{verbatim}
+FWHM = 2  ## stands for full-width half-max of the Gaussian which models the PSF
+psf = measAlg.createPSF("DoubleGaussian", 15, 15, FWHM/(2*math.sqrt(2*math.log(2))))
+
+dsPos,dsNeg = sDet.detectSources(subIm,psf,detPol)  ## Returns the positive and negative detections, but we only really care about the positive for this example
+objects = dsPos.getFootprints()
+print len(objects) ## Prints how many sources were found in your image
+\end{verbatim}
+
+Next, we specify the values for the \textit{measurement} of sources, and finally perform some measurements. [this portion still needs work]
+\begin{verbatim}
+sourcePol = pexPol.Policy()
+sourcePol.add('source','astrom')
+sourcePol.add('astrometry','SDSS')
+sourcePol.add('shape','SDSS')
+sourcePol.add('photometry','NAIVE')
+sourcePol.add('centroidAlgorithm','SDSS')
+sourcePol.add('shapeAlgorithm','SDSS')
+sourcePol.add('photometryAlgorithm','NAIVE')
+sourcePol.add('apRadius',3.0)
+
+measureSources = measAlg.makeMeasureSources(exposure,sourcePol,psf)
+sourceList = afwDet.SourceSet()
+
+for i in range(len(objects)):
+    source = afwDet.Source()
+    measureSources.apply(source,objects[i])
+    sourceList.append(source)
+    source.setId(i)
+       
+    print source
+
+    ## Locate the center of each source and display a red +
+    xc, yc = source.getXAstrom() - mi.getX0(), source.getYAstrom() - mi.getY0()
+    ds9.dot("+", xc, yc, size = 5, ctype = ds9.RED)
+
+\end{verbatim}
