@@ -134,12 +134,12 @@ copy should not be made).  Shallow copies are excellent for
 efficiently extracting postage stamps, as long as you remember the
 implications of modifying their pixel values.
 
-You can set pixel values using the \texttt{<<=} operator.  For
+You can set pixel values using the \texttt{< <=} operator.  For
 example, if you wanted to set all the pixels inside the bounding box to a
 scalar value, say 99:
 
 \begin{verbatim}
-im4 <<= 99
+im4 < <= 99
 \end{verbatim}
 
 This also works if the right-hand side is an image of the correct size.
