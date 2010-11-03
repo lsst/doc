@@ -1,19 +1,30 @@
 This section gives you a very basic idea of how to get started with
-simple tasks.  Once you have the LSST software stack installed (see
-Appendix~\ref{appendix-stackinstall}), try these examples.  Remember
-to source loadLSST.csh or loadLSST.sh before starting Python.  These
-examples are designed to be run in interactive mode, so just type
-\texttt{python} to start and copy/paste the examples in.
-
-Python is much nicer to use interactively if you ask it to remember your command history and provide word completion; see Appendix \ref{appendix-interactivePython}.
+simple tasks.  To run the following examples, you will first need to:
+\begin{itemize} 
+\item Install the LSST software stack on your machine.
+Appendix~\ref{appendix-stackinstall} describes how to do this.
+\item Make sure that you have defined the LSST\_HOME environment
+variable.
+\item Source \$LSST\_HOME/loadLSST.csh or \$LSST\_HOME/loadLSST.sh
+from your shell
+\item At your shell prompt, type \texttt{setup
+afw}. Appendix~\ref{appendix-stackinstall} explains more about the
+purpose of the \texttt{setup} command.
+\item Optionally, configure Python to remember
+your command history and provide word completion; see
+Appendix \ref{appendix-interactivePython}.
+\item Type \texttt{python} to start the python interpreter, and copy/paste the examples in.
+\item If you are unfamiliar with object-oriented programming lingo,
+read or consult Appendix~\ref{appendix-lingo} as necessary.  
+\end{itemize} 
 
 \section{Reading and displaying a FITS image}
 
 The main package we'll be using is the \texttt{afw} (applications
 framework) package, so we start by importing some afw subpackages.
-Remember to \texttt{setup afw} at your Unix prompt after sourcing
-loadLSST.csh but before starting Python (see the end of
-Appendix~\ref{appendix-stackinstall} if you're not sure why).
+%Remember to \texttt{setup afw} at your Unix prompt after sourcing
+%loadLSST.csh but before starting Python (see the end of
+%Appendix~\ref{appendix-stackinstall} if you're not sure why).
 
 \begin{verbatim}
 import lsst.afw.display.ds9 as ds9
@@ -55,50 +66,44 @@ import lsst.afw.image as afwImg
 im1 = afwImg.ImageF(`image1.fits')
 im2 = afwImg.ImageF('image2.fits')
 
-im3 = afwImg.ImageF(im1,True)
+im3 = afwImg.ImageF(im1,True) # create deep copy
 im3 =- im2
 \end{verbatim}
 
 Again, this is because when working with large amounts of data we want
 to minimize the amount of pixel copying.  The system is designed to
-avoid new copies unless explicitly asked.
+avoid new copies unless explicitly asked.  The penultimate line
+creates a new copy of im1, called im3.  Setting the second argument
+to \texttt{True} is necessary to make a {\it deep copy}, meaning that
+the resulting image is a completely new image, independent of the
+parent image and occupying its own area of memory.  If the second
+argument is \texttt{False} or is omitted, a shallow copy is generated,
+meaning that the copy {\it still refers to the pixel values stored in
+the parent image}.  Thus, if the pixels of a shallow copy are
+modified, the corresponding pixels in the parent image will be
+modified as well.  {\it Astronomers who are new to the concept of deep
+and shallow copies will want to pay particular attention to this
+point.}  Shallow copies save memory and time (for example, making
+postage stamps from a large image can be very fast and efficient) but
+you must handle them properly (don't modify the postage stamps if you
+will need to refer to the original pixel values).
 
-The first line above, beginning with im3, creates a new copy of im1, called im3.  There are
-two very important things to note about this line:
-
-\begin{itemize}
-
-\item Setting the second argument to \texttt{True} is necessary to
-  make a {\it deep copy}, meaning that the resulting image is a
-  completely new image, independent of the parent image and occupying
-  its own area of memory.  If the second argument is \texttt{False} or
-  is omitted, a shallow copy is generated, meaning that the copy {\it
-    still refers to the pixel values stored in the parent image}.
-  Thus, if the pixels of a shallow copy are modified, the
-  corresponding pixels in the parent image will be modified as well.
-  {\it Astronomers who are new to the concept of deep and shallow
-    copies will want to pay particular attention to this point.}
-  Shallow copies save memory and time (for example, making postage
-  stamps from a large image can be very fast and efficient) but you
-  must handle them properly (don't modify the postage stamps if you
-  will need to refer to the original pixel values).
-
-\item If you are not familiar with object-oriented programming, you
-  may be surprised to see that the ``function'' \texttt{ImageF}, which
-  was previously called with a string (the filename) as its first and
-  only argument, is now being called with {\it two} arguments, the
-  first of which is not even a string.  This is a powerful
-  feature. Conceptually, we know that an image can be constructed in
-  many different ways.  However, many programming languages in the
-  past forced us to declare different names for procedures which
-  operate on different data types or take different numbers of
-  arguments, even if they are conceptually similar.  With C++ and
-  Python, conceptually similar operations can have the {\it same
-    name}.  \texttt{ImageF} is not really a function; in
-  object-oriented lingo it is a called a {\it method}.  Because it
-  makes a new object, it is more specifically called a {\it
-    constructor}.  We will soon see how to browse the C++
-  documentation for all the different ways to construct an image.
+%\item If you are not familiar with object-oriented programming, you
+%  may be surprised to see that the ``function'' \texttt{ImageF}, which
+%  was previously called with a string (the filename) as its first and
+%  only argument, is now being called with {\it two} arguments, the
+%  first of which is not even a string.  This is a powerful
+%  feature. Conceptually, we know that an image can be constructed in
+%  many different ways.  However, many programming languages in the
+%  past forced us to declare different names for procedures which
+%  operate on different data types or take different numbers of
+%  arguments, even if they are conceptually similar.  With C++ and
+%  Python, conceptually similar operations can have the {\it same
+%    name}.  \texttt{ImageF} is not really a function; in
+%  object-oriented lingo it is a called a {\it method}.  Because it
+%  makes a new object, it is more specifically called a {\it
+%    constructor}.  We will soon see how to browse the C++
+%  documentation for all the different ways to construct an image.
 
 \end{itemize}
 
