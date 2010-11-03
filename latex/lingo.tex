@@ -1,0 +1,52 @@
+% lingo
+
+%\section{Quick Summary of Object-Oriented Programming Lingo}
+
+If you are unfamiliar with object-oriented programming (OOP), this is an
+{\it extremely} brief summary, just enough to define some terms so
+that you can start reading this manual fruitfully.  You are advised to
+consult other references to gain a deeper understanding.
+
+An {\it object} or a {\it class} is a software construct that contains
+both data and algorithms (called {\it methods} for manipulating that
+data.  (A key insight of OOP is that keeping data and algorithms
+together makes software more robust and reusable.)  For example, the
+{\it image} class contains data members such as number of pixels in
+each dimension, and memory for containing the actual pixel values.
+When the name of the class is invoked on the right-hand side (for
+example, \texttt{im1 = afwImg.ImageF(`image1.fits')}), it serves as a
+{\it constructor}, which allocates and initializes the data members
+(or {\it instantiates} the object) and returns a reference to the
+object.
+
+The image class also contains methods such as multiplication by a
+scalar and multiplication by another image. Obviously, the internal
+workings of `` multiplication by a scalar'' and ``multiplication by
+another image'' are quite different.  But we can present a simple
+interface to people using our class, so that \texttt{im1 *= 2} invokes
+`` multiplication by a scalar'' and \texttt{im1 *= im2} invokes
+``multiplication by another image.''  This is known as {\it operator
+  overloading}.
+
+{\it Inheritance} is another big idea of OOP.  We can define {\it
+  subclasses} which inherit the properties of their parent classes,
+but tweak certain details.  As an example, if operation \texttt{foo}
+can be done blindingly fast on square images but not on general
+rectangular images, we would write the slow version of \texttt{foo}
+for the \texttt{image} class, and then define a \texttt{squareimage}
+subclass which inherits all the methods of an \texttt{image} but
+overloads \texttt{foo} with its own blindingly fast algorithm.  This
+is great for code reuse, because now if we add a new feature to (or
+fix a bug in) the \texttt{image} class, it {\it automatically} also
+gets incorporated into \texttt{squareimage} via inheritance.  We don't
+need to touch the \texttt{squareimage} subclass.
+
+Note that classes often have a variety of constructors.  For example,
+\texttt{im1 = afwImg.ImageF(`image1.fits')} calls a constructor which
+creates an in-memory \texttt{image} from a FITS file, but \texttt{a =
+  afwImg.ImageF(10,10)} creates an in-memory \texttt{image} knowing
+only the desired dimensions (initializing the pixel values to zero).
+By looking at the types of the arguments starting with the first one,
+you will be able to deduce which method is actually called in any
+given case.
+
