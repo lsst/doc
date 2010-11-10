@@ -104,8 +104,7 @@ will need to refer to the original pixel values).
 %  makes a new object, it is more specifically called a {\it
 %    constructor}.  We will soon see how to browse the C++
 %  documentation for all the different ways to construct an image.
-
-\end{itemize}
+%\end{itemize}
 
 Similar operators \texttt{+=}, \texttt{*=}, and \texttt{/=} are
 defined, which do the obvious things.  The object on the right-hand
@@ -139,12 +138,12 @@ copy should not be made).  Shallow copies are excellent for
 efficiently extracting postage stamps, as long as you remember the
 implications of modifying their pixel values.
 
-You can set pixel values using the \texttt{< <=} operator.  For
+You can set pixel values using the \texttt{<<=} operator.  For
 example, if you wanted to set all the pixels inside the bounding box to a
 scalar value, say 99:
 
 \begin{verbatim}
-im4 < <= 99
+im4 <<= 99
 \end{verbatim}
 
 This also works if the right-hand side is an image of the correct size.
@@ -155,6 +154,7 @@ useful for making a picture gallery of interesting galaxies, for
 example.
 
 \begin{verbatim}
+import lsst.afw.image as afwImg
 import lsst.afw.display.utils as utils
 
 im1 = afwImg.ImageF(`image1.fits')
@@ -210,7 +210,7 @@ print stats.getResult(math.MEAN) # ditto for mean
 
 Possible statistics to calculate:
 \begin{itemize}
-\item ERRORS     Inlude errors of requested quantities.
+\item ERRORS     include errors of requested quantities.
 \item NPOINT     number of sample points
 \item MEAN     estimate sample mean
 \item STDEV     estimate sample standard deviation
@@ -230,23 +230,24 @@ Possible statistics to calculate:
 This list is provided here to give you an idea of the capabilities in
 the system, but capabilities change over time.  It's a good idea to
 check the C++ documentation (as described below) for the most
-up-to-date list.  The main selling point is not that you can compute
-statistics---many software packages can do that---but that if you use
-\texttt{maskedImage}s, the masks are {\it automatically applied} when
-computing the statistics.
+up-to-date list.  
+% Introduce this idea in the next section
+%The main selling point is not that you can compute
+%statistics---many software packages can do that---but that if you use
+%\texttt{maskedImage}s, the masks are {\it automatically applied} when
+%computing the statistics.
 
 If you want detailed control over how the statistics are computed, for
-example {\it not} using the masks, or changing the clipping from the
-default 3$\sigma$ and 3 iterations, you must create a
-StatisticsControl object with five arguments: the number of sigma to
-clip at, the number of iterations for clipping, a specification of
-which bitplanes of the mask to use (0 means use all of them; mask
-bitplanes will be explained further in Chapter~\ref{chap-overview}), a
-boolean indicating whether to avoid using pixels which have NaN
-(not-a-number) values, and a boolean indicating whether to weight
-pixels by their inverse variance.  In the example below, we use all
-the default values except to ask for 5$\sigma$ rather than 3$\sigma$
-clipping.
+example changing the clipping from the default 3$\sigma$ and 3
+iterations, you must create a StatisticsControl object with five
+arguments: the number of sigma to clip at, the number of iterations
+for clipping, a specification of which bitplanes of the mask to use (0
+means use all of them; mask bitplanes will be explained in the next
+section, and in this case we have no mask yet anyway), a boolean
+indicating whether to avoid using pixels which have NaN (not-a-number)
+values, and a boolean indicating whether to weight pixels by their
+inverse variance.  In the example below, we use all the default values
+except to ask for 5$\sigma$ rather than 3$\sigma$ clipping.
 
 \begin{verbatim}
 import lsst.afw.image as afwImg
@@ -279,94 +280,182 @@ Once you have constructed \texttt{maskedImage}s, masking and
 uncertainty propagation is done {\it automatically} when you invoke
 these arithmetic operations.
 
-A couple caveats first, before the examples:
+Before the examples, a few remarks about masks are in order:
 \begin{itemize}
-\item The mask part of MaskedImage is not just another image but
-is created with MaskU, where the ``U'' stands for ``unsigned''.
-\item The error message you get when you use a constructor
-incorrectly is not very specific.  You might get a list of all
-possible constructors, which is not very helpful when there
-are dozens and you just want to know where your one little mistake
-is.  (Not that the software COULD know what you mean, of course,
-but it's different from say, C, where the compiler knows what type
-the third argument should be, and tells you quite specifically when you
-give it the wrong type.)
+\item The mask part of MaskedImage has pixels of type unsigned, so is
+  created with the lsst.afw.image.MaskU constructor.  However, you may
+  not need to specifically create the mask, because there are other
+  constructors, such as lsst.afw.image.MaskedImageF, which will create
+  both the data image (float in this case) and the mask in one call.
+\item The mask is quite flexible, far more than just a binary one or
+  zero indicating a good or bad pixel.  It has 16 bitplanes, and you
+  can assign any meaning you want (eg, saturated, bad pixel, etc) to
+  any of the planes.  In this manual, we will stick to the default set
+  of planes:
+\begin{verbatim}
+Plane 0 -> BAD
+Plane 1 -> SAT
+Plane 2 -> INTRP
+Plane 3 -> CR
+Plane 4 -> EDGE
+Plane 5 -> DETECTED
+Plane 6 -> DETECTED_NEGATIVE
+\end{verbatim}
+% LIST HERE??  
+In fact, we do not have to worry about which plane is
+  assigned which meaning because we can always use getters and setters
+  to manipulate data by meaning rather than by plane number.
 \end{itemize}
 
-To create a masked image from nothing, use the following example, substituting your own dimensions for the ones included here.
+% I'm not sure this example is instructive:
+%To create a masked image from nothing, use the following example, substituting your own dimensions for the ones included here.
+%
+%\begin{verbatim}
+%import lsst.afw.image as afwImg
+%
+%a = afwImg.ImageF(10,10) # image
+%v = afwImg.ImageF(a.getDimensions()) # variance image
+%m = afwImg.MaskU(a.getDimensions()) # mask
+%mi = afwImg.MaskedImageF(a,m,v) # put it all together into one maskedImage
+%\end{verbatim}
+
+%That last line is a bit of a bore as you have to remember the \verb|F|;  fortun%ately you can get the computer to do the work by saying
+%\begin{verbatim}
+%mi2 = afwImg.makeMaskedImage(a, m, v)
+%\end{verbatim}
+
+Let's create an artificial masked image and then show how it works.
+First, we'll demonstrate that variances automatically propagate
+correctly when we do math operations on a MaskedImage (remember,
+having a mask is not the only key feature of a MaskedImage; the
+variance image is also useful and powerful).
 
 \begin{verbatim}
 import lsst.afw.image as afwImg
 
-a = afwImg.ImageF(10,10) # image
-v = afwImg.ImageF(a.getDimensions()) # variance image
-m = afwImg.MaskU(a.getDimensions()) # mask
-mi = afwImg.MaskedImageF(a,m,v) # put it all together into one maskedImage
+im1 = afwImg.MaskedImageF(100,100) # new 100x100 masked image
+                                   # with zero pixel vals in data,
+                                   # variance, and mask images
+
+# set the variance to something nonzero
+vari = im1.getVariance()
+vari.set(1.0)  # this sets ALL pixels of the variance image
+
+# the variance should increase by 4 if we multiply
+# the data by 2
+im1 *= 2
+vari.get(0,0) # we just look at the 0,0 pixel because they're
+              # all the same at this point
 \end{verbatim}
 
-That last line is a bit of a bore as you have to remember the \verb|F|;  fortunately you can get the computer to do the work by saying
+The result is a variance of 4, as it should be. Let's try operations
+involving two images:
 \begin{verbatim}
-mi2 = afwImg.makeMaskedImage(a, m, v)
+import lsst.afw.image as afwImg
+
+im1 = afwImg.MaskedImageF(100,100) 
+im2 = afwImg.MaskedImageF(100,100) 
+
+# set the variances to something nonzero
+var1 = im1.getVariance()
+var1.set(1.0)
+var2 = im2.getVariance()
+var2.set(2.0)
+
+# the variances should add when we add or multiply the images
+im1 += im2
+var1.get(0,0) 
 \end{verbatim}
 
-Alternatively, you can create a masked image and then tell Python to get the components.  In the following example, we generate a masked image of size 100 x 100 pixels, set all of the pixels in the variance image to 1.0, and set all of the pixels in the base (??) image to 32.0.  Then, we assign the ``saturated'' mask plane to the mask, and to make things a bit more interesting, we apply the mask to pixels (50,50) and (60,60).  
+The variance is now 3; the variances automatically added when I added
+two images.
+
+Hmmm, multiplication doesn't work!
+
+Now let's simulate a saturated pixel and show how the mask
+autmatically excludes it from the statistics:
 
 \begin{verbatim}
 import lsst.afw.image as afwImg
-import lsst.afw.display.ds9 as ds9
-
-mi = afwImg.MaskedImageF(100,100)
-
-vari = mi.getVariance()
-vari.set(1.0)
-
-img = mi.getImage()
-img.set(32.0)
-
-mask = mi.getMask()
-
-bitMask = mask.getPlaneBitMask('SAT')
-mask.set(50,50,bitMask)
-mask.set(60,60,bitMask)
-
-ds9.mtv(mi)
-\end{verbatim}
-
-You can use the methods in the ``Image Statistics'' section to verify that you have indeed masked those 2 pixels:
-
-\begin{verbatim}
-import lsst.afw.image as afwImg
-import lsst.afw.display.ds9 as ds9
 import lsst.afw.math as math
 
-mi = afwImg.MaskedImageF(100,100)
-vari = mi.getVariance().set(1.0)
-mask = mi.getMask()
-img = mi.getImage()
-img.set(32)
+# set up our usual image with zero pixvals and unit variance
+im1 = afwImg.MaskedImageF(100,100) 
+var1 = im1.getVariance()
+var1.set(1.0)
 
-stats = math.makeStatistics(mi,math.NPOINT)
-print stats.getValue(math.NPOINT)
+# set one saturated pixel
+img = im1.getImage()
+img.set(0,0,65000.0) # this sets just the 0,0 pixel
+
+# get statistics BEFORE masking
+stats = math.makeStatistics(im1,math.MEAN|math.NPOINT|math.STDEV)
+stats.getResult(math.MEAN)
+stats.getResult(math.STDEV)
+stats.getResult(math.NPOINT)
+
+# over 10000 pixels, the mean is 6.5 and the stdev is 650,
+# because of the one saturated pixel (the rest are zero)
+
+# if you want to visualize the image we created
+import lsst.afw.display.ds9 as ds9
+ds9.mtv(im1)
+
+# now mask the saturated pixel
+mask = im1.getMask()
+satbit = mask.getPlaneBitMask('SAT')
+mask.set(0,0,satbit) # again, setting just the 0,0 pixel
+
+# and try the statistics again
+stats = math.makeStatistics(im1,math.MEAN|math.NPOINT|math.STDEV)
+stats.getResult(math.MEAN)
+stats.getResult(math.STDEV)
+stats.getResult(math.NPOINT)
+
+# now, over 9999 pixels, the mean and variance are zero
 \end{verbatim}
 
-(Note: You can leave off ``print'' if you are running this interactively.)  Notice that this prints out the value 10000, which is the number of pixels in our images.
+So once you have masked your pixels and defined your variances, the
+framework makes math operations on images extremely useful because
+the masking and variance propagation happen automatically.  In real
+life, you will not be manually setting mask bits and variances.  We
+will cover more realistic examples in later chapters, but this should
+be enough to demonstrate the usefulness of the framework.
 
-\begin{verbatim}
-bitMask = mask.getPlaneBitMask('SAT')
-mask.set(50,50,bitMask)
-mask.set(60,60,bitMask)
+Note: because you are running interactively,
+stats.getResult(math.WHATEVER) prints the result.  In a real script,
+you would store the result for later use with something like
+\texttt{mean = stats.getResult(math.MEAN)}.
 
-ctrl = math.StatisticsControl()
-ctrl.setAndMask(bitMask)
-stats = math.makeStatistics(mi,math.NPOINT,ctrl).getValue()
-\end{verbatim}
-
-Now, the value printed is 9998, which is perfect because we masked 2 pixels.  And we avoided typing \verb|math.NPOINT| twice (which only works if you're asking for one thing).
 
 \section{Exposures}
-As you have probably already noticed, calling an object an ``image'' in the LSST environment is not as simple as it sounds - there are several classes which a layperson would consider images, but an astronomer using the LSST software must know the difference.
 
-To begin, an ``image'' is simply a 2D array of pixels.
+As you have probably already noticed, calling an object an ``image''
+in the LSST environment is not as simple as it sounds - there are
+several classes which in everyday English could all be called images,
+but which behave differently in the LSST software.  The image on the
+following page charts their relationships.
+
+To begin, an ``image'' is simply a 2D array of pixels. A MaskedImage
+includes an image, a variance image, and a mask, as already explained.
+An Exposure is what you will most likely actually be working with.  It
+aggregates a MaskedImage and a few other useful things: 
+\begin{itemize}
+\item Metadata, or information about the data.  You can think of this
+  as a sort of ``FITS header'', but it is far more flexible because it
+  is really a Python dictionary.
+\item An optional point-spread function (PSF).  We'll see later how to
+  generate and use this.
+\item An optional World Coordinate System (WCS) which maps pixel
+  locations to (usually) RA and DEC. We'll see later how to generate
+  and use this.
+\end{itemize}
+
+We need a few simple examples of reading an Exposure from a FITS file.
+
+This concludes our set of ``Hello, world'' examples.  To move beyond
+these very simple tasks, we must first get an overview of what's
+available in the LSST packages.
 
 \includegraphics[angle=90,scale=0.5]{./figures/exposure.pdf}
 %Not sure what to do with this, so it's on its side for now.
@@ -377,8 +466,3 @@ To begin, an ``image'' is simply a 2D array of pixels.
 %tab of the aforementioned documentation, for additional image
 %commands.
 
-\vskip0.5in
-
-This concludes our set of ``Hello, world'' examples.  To move beyond
-these very simple tasks, we must first get an overview of what's
-available in the LSST packages.
