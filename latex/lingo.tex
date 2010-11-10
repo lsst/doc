@@ -45,8 +45,14 @@ Note that classes often have a variety of constructors.  For example,
 \texttt{im1 = afwImg.ImageF(`image1.fits')} calls a constructor which
 creates an in-memory \texttt{image} from a FITS file, but \texttt{a =
   afwImg.ImageF(10,10)} creates an in-memory \texttt{image} knowing
-only the desired dimensions (initializing the pixel values to zero).
-By looking at the types of the arguments starting with the first one,
-you will be able to deduce which method is actually called in any
-given case.
+  only the desired dimensions (initializing the pixel values to zero).
+  By looking at the types of the arguments starting with the first
+  one, you will be able to deduce which method is actually called in
+  any given case.  The error message you get when you use a
+  constructor incorrectly is not very specific.  You might get a list
+  of all possible constructors, which is not very helpful when there
+  are dozens and you just want to know where your one little mistake
+  is.  This is rather different from say, C, where the compiler knows
+  what type the nth argument should be, and tells you quite
+  specifically when you give it the wrong type.
 
