@@ -368,9 +368,12 @@ var1.get(0,0)
 \end{verbatim}
 
 The variance is now 3; the variances automatically added when I added
-two images.
-
-Hmmm, multiplication doesn't work!
+two images.  Note that {\it multiplying} these images would result in
+zero variance because propagation of errors through multiplication
+involves multiplying by the pixel values themselves, which are zero
+here.  To convince yourself that variances are propagated through
+multiplication correctly, you might want to set the pixels to nonzero
+values.
 
 Now let's simulate a saturated pixel and show how the mask
 autmatically excludes it from the statistics:
@@ -451,7 +454,44 @@ aggregates a MaskedImage and a few other useful things:
   and use this.
 \end{itemize}
 
-We need a few simple examples of reading an Exposure from a FITS file.
+You can construct an Exposure from a FITS file with\footnote{Note the
+  templating: it is ExposureF in Python even though in C++ Exposure is
+  templated over the types of image, mask, {\it and} variance:
+  \texttt{Exposure< ImageT, MaskT, VarianceT >}.  In other words, if
+  you read the C++ documentation you might have expected to use
+  ExposureFUF.  To simplify life in Python, only ExposureF and
+  ExposureD (meaning float and double images, with unsigned short
+  masks, and float or double variance images respectively) are
+  defined.}:
+\begin{verbatim}
+import lsst.afw.image as afwImg
+im1 = afwImg.ExposureF('foo.fits')
+\end{verbatim}
+but foo.fits will be expected to be a multi-extension FITS file, with
+extensions representing the data, mask, and image. Alternatively, 
+\texttt{im1 = afwImg.ExposureF('foo')} will try to read three separate
+FITS files named foo\_img.fits, foo\_msk.fits, and foo\_var.fits.
+
+If you are just getting started and have some images you want to work
+with, you probably do not have variance and mask images lying around
+like that.  You would probably like to construct the variance image
+using the pixel values and the gain, and you probably have a bad pixel
+mask image with just zeros and ones rather than multiple bitplanes.
+So let's write a Python function to import that into LSST land.
+
+\begin{verbatim}
+import lsst.afw.image as afwImg
+
+# doing this example right requires more time than I have right now!
+
+gain = 3 # need to get gain from header
+im = afwImg.ImageF('foo.fits')
+var = im1/gain
+mask = afwImg.MaskU('bpm.fits') # need to make sure have right bitplane
+exp = afwImage.ExposureF(im,mask,var) # this doesn't grab any metadata!
+\end{verbatim}
+
+\centerline{*}
 
 This concludes our set of ``Hello, world'' examples.  To move beyond
 these very simple tasks, we must first get an overview of what's
