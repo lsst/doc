@@ -1,2 +1,10 @@
-setupRequired(afw)
-setupRequired(meas_astrom)
+# Following is temporarily placed first (vs placing the optionals at end) 
+#      since daymops' ups table file does not specify ' >= minimum version'
+# Use setupOptional for packages not yet Released but which are privately setup
+setupOptional(mops_daymops > 4.1.0.0)
+
+# Following sets up the entire DC3b PT1.1 Release
+setupRequired(datarel > 4.1.0.0)
+setupRequired(ctrl_orca > 4.1.0.0)
+setupRequired(pex_exceptions > 4.1.0.0)
+

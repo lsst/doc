@@ -22,7 +22,19 @@ def writeDoxygen_conf(products=None):
     fp.close()
 
 
+# Following creates doxygen config file used to generate cross-reference
+# between all explicitly named packages
 products = ["meas_astrom", "afw"]
+
+# Following creates doxygen config file used to generate cross-reference
+# documentation for ALL packages currently 'setup'.
+#products = None
+
+# Override crosslink-or-not with an environment variable
+xlinkdoxy = int(os.environ.get('xlinkdoxy',None))
+if xlinkdoxy == 1 :
+    products = None
+
 writeDoxygen_conf(products)
 
 

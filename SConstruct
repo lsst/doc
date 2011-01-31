@@ -7,7 +7,7 @@ import lsst.SConsUtils as scons
 env = scons.makeEnv("devenv_doc", r"$HeadURL: $", [ ])
 
 
-# farm out the SCoscripts
+# farm out the SConscripts
 for d in ["latex", "doxygen"]:
     try:
         SConscript(os.path.join(d, "SConscript"))
