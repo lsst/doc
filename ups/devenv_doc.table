@@ -6,5 +6,5 @@ setupOptional(mops_daymops > 4.1.0.0)
 # Following sets up the entire DC3b PT1.1 Release
 setupRequired(datarel > 4.1.0.0)
 setupRequired(ctrl_orca > 4.1.0.0)
-setupRequired(pex_exceptions > 4.1.0.0)
+setupRequired(pex_exceptions > 3.2.0)
 
