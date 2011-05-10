@@ -1,0 +1,735 @@
+In this chapter, we will use some of the techniques we learned in the previous chapter to work in detail through the steps required to build a catalog from a real astronomical image.  Along the way, we will cover many of the important classes and techniques used by the LSST pipelines, including the Image Characterization and Single Frame Measurement pipelines. 
+ 
+\section{Starting Points}
+ 
+The current LSST DC3 Pipelines are built around images and telescope metadata specifically designed to simulate LSST.  Since our purpose is to demonstrate how the LSST framework can be used to reduce images from any astronomical source, we will start instead with an image taken from the NOAO 4m telescope at KPNO.  The image has already been bias subtracted and flat-fielded, but has not been background subtracted.
+ 
+Fits Files:
+ 
+In this example, we will extract a single 2048 x 4096 pixel CCD image from an eight CCD mosaic image, and prepare it for processing by the LSST pipeline.  Our input image is called obj074.fits.  It is an ordinary 9 segment fits file:  the first segment is used to store the overall image header, and the remaining 8 segments contain a header and image data for each of the 8 CCDs in the KPNO mosaic.
+ 
+We also have metadata from the telescope, including bad pixel masks and amplifier gain information for each chip.
+ 
+                        obj074.fits                                8 CCD mosaic image
+                        bpm.4.fits                                 bad pixel mask from amplifier 4
+                        amplifier 4 gain             2.9
+                        saturation level              28000
+                        
+Package Setup and Imports:
+ 
+In order to run the Python code in this chapter, you will need to install and setup the datarel package, which contains runStage, the procedure used to run the various image processing steps.  If you have the LSST software stack installed, datarel and its dependencies can be fetched using
+ 
+\begin{verbatim}
+            %lsstpkg install datarel
+\end{verbatim}
+ 
+The list of Python package imports and aliases which you will need to run the code in this section include:
+ 
+\begin{verbatim}
+import pdb
+import pickle
+from lsst.datarel import runStage
+import lsst.afw.detection as afwDetect
+import lsst.afw.image as afwImg
+import lsst.meas.pipeline as measPipe
+import lsst.afw.geom as afwGeom
+import lsst.afw.math as afwMath
+import lsst.afw.display.ds9 as ds9
+import lsst.daf.persistence as dafPersist
+import lsst.pex.policy as pexPol
+import lsst.daf.base as dafBase
+\end{verbatim}
+
+\section{Creating an LSST exposure}
+ 
+As discussed in the previous chapter, an afw.lsst.image.ExposureF object can be used to house many different pieces of information about an astronomical observation.  In this section, we will assemble an exposure from our test file and known metadata supplied by the telescope, including instrumental gain and bad pixel masks.
+ 
+The data and bad pixel mask images are first read into ImageF objects from the fits files in the current directory.  Note that only CCD 4 and the corresponding bpm file are read.  The saturation level and gain for that chip are supplied in the header of the observation, and are reproduced in the code shown below:
+ 
+\begin{verbatim}
+#   Read the data and bad pixel images
+img = afwImg.ImageF("obj074.fits", 4)
+gain = 2.9
+saturation = 28000
+var = afwImg.ImageF(img, True)
+var /= gain
+ 
+#   Create a mask object to contain bad pixel and saturation info
+mi = afwImg.MaskU(img.BBox(afwImg.PARENT), 0)
+ 
+#  Set the saturated bit in the Mask for all pixels > the saturation
+satbit = mask.getPlaneBitMask('SAT')
+for i in range(img.getWidth()):
+    for j in range(img.getHeight()):
+        if img.get(i,j) > saturation:
+            mask.set(i,j,satbit)
+ 
+#  Set the bad bit in the Mask for all bad pixels in the bpm
+bpm = afwImg.ImageF("bpm 4.fits")
+badbit = mask.getPlaneBitMask('BAD')
+for i in range(bpm.getWidth()):
+    for j in range(bpm.getHeight()):
+        if not bpm.get(i,j) == 0:
+            mask.set(i,j,badbit)
+ 
+#  Finally, create the masked image and exposure and save to a fits file
+mi = afwImg.makeMaskedImage(img, mask, var)
+exposure = afwImg.makeExposure(mi)
+exposure.writeFits("exposure.fits")
+ 
+\end{verbatim}
+The code should be pretty self explanatory by now, as it is a real world example of what we did in chapter 3.  The image, variance, and mask images are assembled from the information contained in the input fits files, an ExposureF object is constructed, and for future use, the object is written to disk as a fits file under the name exposure.fits.
+ 
+\section{Pipelines, Stages, Policies, and Clipboards}
+ 
+Before we go any further, we need to introduce some basic LSST pipeline terminology.  The LSST software stack contains code to do a wide variety of highly organized tasks on input data.  These tasks are divided into pipelines, each pipeline applying a sequence of operations on the data to accomplish a specific task. 
+ 
+In our example, we will be examining code from the Image Characterization and Single Frame Measurement pipelines.  These two pipelines must be performed in sequence on an image: the first to characterize overall properties of the image, such as the size and variation of the Psf, background and noise; the second to create a detection catalog and measure the positions and magnitudes of the sources contained in the image.  
+ 
+In LSST stack, pipelines are comprised of stages, and stages are controlled by policies.  For example, the Image Characterization pipeline is made up of this sequence of stages:
+ 
+            A stage to remove background and detect bright sources in an image.
+            A stage to measure bright source fluxes and shapes.
+            A stage to characterize the Psf from stellar sources..
+            A stage to model the aperture correction
+            A stage to provide accurate WCS information
+ 
+Our tutorial code will run these stages in the same way that the Image Characterization pipeline does, doing a first pass to identify stars and characterize the PSF and Aperture Correction.  After the image characterization has been done, a simplified form of the Single Frame Measurement pipeline is run to create astrometric and photometric catalogs.
+ 
+A Simple Example of Running a Stage:
+ 
+To give the reader the flavor of how you go about calling a Stage, here is an example of a call to the SourceMeasurementStage:
+\begin{verbatim}
+ 
+    exposure = afwExposureF(exposure.fits)
+    clip = {'inputExposure': exposure}
+    clip = runStage(measPipe.SourceDetectionStage,
+        """#<?cfg paf policy?>
+        inputKeys: { 
+            exposure: inputExposure
+        }
+        outputKeys: {
+            positiveDetection: positiveFootprintSet
+            psf: simplePsf
+        }
+        detectionPolicy: {
+            thresholdType: stdev
+            thresholdValue: 5.0
+            minPixels:  20
+        }
+        """, clip)
+\end{verbatim}
+ 
+In this example, an exposure is first read from disk and a reference to it is placed in a dictionary, called by LSST convention the clipboard.  The inputKeys specification tells the stage that the input object can be found on the clipboard under the key inputExposure.  The Stage will process the exposure and return a new clipboard which contains the references to the requested output objects.  Our output is a set of detected sources, called the positiveFootprintSet.  We also get back a Psf object which was constructed during the source detection process.  On return from the runStage call, you should be able to fetch the output FootprintSet as follows:
+ 
+\begin{verbatim}
+                footprintSet = clip[positiveFootprintSet]
+ 
+\end{verbatim}
+The object returned on the clipboard is an object of type lsst.afw.detection. FootprintSetF.  It is the Python representation of the C++ templated FootprintSetF class.  We will talk more about this class later.
+ 
+Policies:
+ 
+When you call a stage, you must supply an lsst.pex.policy.Policy object or a string which can be used to create such a policy (called a policyString).  The Policy object is used to pass the Stage configuration information, including its runtime parameter values and the names of its input and output clipboard objects.
+ 
+The examples in the previous chapter explicitly constructed a Policy object and used the add method to create the individual policy settings , whereas in our Stage examples, all of the policy settings will be specified in a single policyString.  Either construction is allowed, so use the one you are most comfortable with.
+ 
+If you want to see all of the Policy options which can be supplied to this stage, they are defined in the file:
+ 
+\begin{verbatim}
+meas pipeline/version/policy/SourceDetectionStageDictionary.paf
+\end{verbatim}
+ 
+where version is the particular version number of meas pipeline which you currently have installed. The paf file tells you what input parameters are available for you to set, which ones are required or optional, what ranges of values are allowed, and what the default values are.  The inputKeys and outputKeys allow you to control the clipboard keys used to send objects to the Stage and to receive objects back on the clipboard.
+ 
+Files with extension .paf are used in LSST code to specify the Policy structure and defaults for all kinds of code, not just Stages.  One extremely useful feature of paf files is that they are allowed to include other paf files, so they can be used to create a hierarchy.  For example, the SourceDetectionStageDictionary.paf contains the item:
+ 
+\begin{verbatim}
+    #parameters
+    backgroundPolicy: {
+        type: "policy"
+        dictionary: @@meas utils:policy/BackgroundDictionary.paf
+        description: "the parameters needed to estimate an exposure's backgrnd"
+        minOccurs: 0
+        maxOccurs: 1
+    } 
+\end{verbatim}
+ 
+The backgroundPolicy is a Policy which tells LSST how to create a background image from your original image.  The dictionary for this policy is found in a separate file:
+ 
+\begin{verbatim}
+meas utils/version/policy/BackgroundDictionary.paf
+\end{verbatim}
+ 
+In this way LSST is able to reuse policy definitions throughout the software stack.
+ 
+ 
+\section{Image Characterization}
+ 
+Now that we have covered the basics of Policies and Stages, lets try it out with the Image Characterization Pipeline.  The code we are about to cover is actually a slightly modified version of the Image Simulation pipelines used to test LSST code on simulated LSST images.  Changes have been made to accommodate our own test images, and to allow us to insert code between the stages for pedagogical purposes.
+ 
+The role of the Image Characterization pipeline is to do an initial examination of our exposure, detect stellar objects in the field, and use those objects to characterize overall features of the image.  The stage will create models of the background and PSF over the image, correct the astrometric solution, and build a model for aperture correction.  At the end of this pipeline, we will save the results of the various stages to disk so that we can use them to do real photometric measurements on our image in section 4.5.
+ 
+The Image Characterization Pipeline comprises five stages:
+ 
+\begin{verbatim}
+      measPipe.SourceDetectionStage
+      measPipe.SourceMeasurementStage
+      measPipe.PsfDeterminationStage
+      measPipe.ApertureCorrectionStage
+      MeasPipe.WcsDeterminationStage
+\end{verbatim}
+ 
+The detection and source measurement are done here in a first pass to allow us to find the stars on which the last three stages depend.  We will cover these detection and measurement stages only briefly, with a more detailed discussion in the next section.
+ 
+To start the pipeline off, first read the exposure we saved to disk in the last section into an exposure object and create a clipboard whose only entry is the exposure:
+ 
+\begin{verbatim}
+exposure = afwImg.ExposureF("exposure.fits")
+clip = {'visitExposure': exposure}
+ 
+\end{verbatim}
+ 
+\subsection{Source Detection Stage}
+ 
+Now call the detection stage with policies set as follows:
+ 
+\begin{verbatim}
+    clip = runStage(measPipe.SourceDetectionStage,
+        """#<?cfg paf policy?>
+        inputKeys: {
+            exposure: visitExposure
+        }
+        outputKeys: {
+            positiveDetection: positiveFootprintSet
+            psf: simplePsf
+        }
+        psfPolicy: {
+            height: 15
+            width: 15
+            parameter: 2. 10.
+        }
+        backgroundPolicy: {
+            algorithm: NATURAL SPLINE
+            statisticsproperty: "MEANCLIP"
+            binsize: 255
+            numiter: 10
+            numsigmaclip:2.5
+        }
+        detectionPolicy: {
+            thresholdType: stdev
+            thresholdValue: 5.0
+            minPixels:  20
+        }
+        """, clip)
+ 
+\end{verbatim}
+The policyString in this example is the same as our early one, with the input and output clipboard keys defined by inputKeys and outputKeys.  The background, detection, and psf policies are all included from paf files defined in meas utils.  You may see all of the policy controls available for this stage by examining the paf files in meas pipeline/version/policy. 
+ 
+Our stage is called to produce a set of positive Footprints which are at least 5 standard deviations above threshold and at least 20 pixels in size.  A positive Footprint is a set of contiguous pixels, all of which are above threshold.  
+ 
+Since the detection stage does a psf convolution as part of the detection process, a Psf object must be supplied or created during the detection stage.  In our example, we specify a simple 15 x 15 convolution kernel represented with a double Gaussian, and request that it be returned on the clipboard using the key simplePsf.  The input value 2. 10. is the  Policy file syntax to indicate two doubles as input values:  in this case, it indicates the sigma1 and sigma2 components of the double gaussian psf, in pixels.  This psf only needs to be approximate:  it is used in the initial stages of the pipeline, prior to the construction of a more accurate Psf model.
+ 
+ 
+The detection stage must also perform a background subtraction prior to detecting which pixels are above threshold.  In this example, the background image is produced using a grid of cells which are binsize pixels on edge.  The background in each cell of the grid is estimated using a 2.5 sigma clip against the mean with up to 10 iterations.  This course background image is then converted into a fine background image using a natural spline.
+ 
+On return from the SourceDetectionStage, you can examine the output by first looking at the items in the clipboard:
+ 
+\begin{verbatim}
+       print clip.keys()
+['backgroundSubtractedExposure', 'visitExposure', 'background',
+ 'simplePsf','positiveFootprintSet']
+ 
+\end{verbatim}
+Note that even though we did not request a background subtracted image, we received one on the clipboard.  That is because the SourceDetectionStage automatically provides the background and background subtracted image on the clipboard unless the backgroundPolicy is set to NONE.  If you want to look at the background object to see what the background  algorithm has done with the supplied backgroundPolicy, you can use the following code on return from the SourceDetectionStage:
+ 
+\begin{verbatim}
+                background = clip.[background]
+ds9.mtv(background.getImageF())
+ 
+\end{verbatim}
+You can also write the image to disk as a fits file:
+\begin{verbatim}
+ 
+       background.getImageF().writeFits(background.fits)
+\end{verbatim}
+ 
+If you request a convolution, he Psf which was used will also be returned on the clipboard. A convolution is requested either by providing an input object called psf, or by setting a psfPolicy.  The created Psf object is returned using the simplePsf key as we specified in the outputKeys section of the policy. To view the Psf:
+ 
+\begin{verbatim}
+       simplepsf = clip[simplePsf]
+       ds9.mtv(simplepsf.computeImage())
+\end{verbatim}
+ 
+ 
+\subsection{Source Measurement Stage}
+ 
+We can now use the products of the SourceDetectionStage to measure our sources.  We simply take the clipboard returned by the stage and identify the objects for the next stage that are to be used as inputs.
+ 
+\begin{verbatim}
+    clip = runStage(measPipe.SourceMeasurementStage,
+        """#<?cfg paf policy?>
+        inputKeys: {
+            exposure: backgroundSubtractedExposure
+            psf: simplePsf
+            positiveDetection: positiveFootprintSet
+        }
+        outputKeys: {
+            sources: sourceSet
+        }
+        """, clip)
+\end{verbatim}
+ 
+The output of the SourceMeasurementStage will be a SourceSet object, which we can fetch on return from the stage in the usual way:
+ 
+\begin{verbatim}
+            sourceset = clip[sourceSet]
+       print We found %d sources.%(len(sourceset))
+\end{verbatim}
+ 
+However, we do not need to do anything with the SourceSet, except to know that each source has a MeasurementShape associated with it, which will be used by the PsfDetermination Stage.
+ 
+\subsection{Psf Determination Stage}
+ 
+The Psf Determination Stage creates a more precise measurement of the spatially varying Psf than our previous simplePsf.  To do this, stellar objects are selected from the SourceSet and binned in a 2D grid, called a spatialCellSet.  
+ 
+\begin{verbatim}
+   clip = runStage(measPipe.PsfDeterminationStage,
+        """#<?cfg paf policy?>
+        inputKeys: {
+            exposure: backgroundSubtractedExposure
+            sourceSet: sourceSet
+        }
+        outputKeys: {
+            psf: measuredPsf
+            cellSet: cellSet
+            sourceSet: psfSourceSet
+            sdqa: sdqa
+        }
+        """, clip)
+    psf = clip['measuredPsf']
+\end{verbatim}
+ 
+If we fetch the CellSet returned by the stage, we find a regular grid of 256x256 pixel cells.  Each cell in the set contains a list of candidate stars, which we can look at on a ds9 image using the following code, with the sources in each grid cell color coded.
+ 
+\begin{verbatim}
+    ds9.mtv(exposure.getMaskedImage().getImage())
+    cellSet = clip['cellSet']
+    cellindex = 0
+    colors=(ds9.RED,ds9.GREEN,ds9.YELLOW,ds9.CYAN,ds9.BLUE)
+    for cell in cellSet.getCellList():
+        cellindex = cellindex + 1
+        color = colors(cellindex % len(colors))
+        for cand in cell.begin(True): # ignore bad candidates
+            x, y = cand.getXCenter(),cand.getYCenter()
+            ds9.dot(O,x,y,size=5,ctype=color)
+\end{verbatim}
+ 
+The Psf representation itself is returned in the psf key.  It may represent the Psf in a variety of ways, depending on the Psf class implementation.  While it is outside the scope of this document to discuss the Psf model, you may view an image of it at the origin of your pixel coordinate system as follows:
+ 
+\begin{verbatim}
+    ds9.mtv(clip[psf].computeImage(afwGeom.makePointD(0.0,0.0)))
+ 
+\end{verbatim}
+\subsection{Compute Aperture Correction Stage}
+ 
+An Aperture Correction object can be created: this object is used to correct source photometry.  The use of this object will be explained in more detail in section 4.5.3.
+ 
+The Aperture Correction object is a spatially varying correction, and like a Psf object, uses a spatially binned CellSet to create its model.  If you provide the Stage with a SourceSet, it will create a CellSet from it on its own. But since a CellSet is already available from our previous stage, we can use it as an input.
+ 
+\begin{verbatim}
+    clip = runStage(measPipe.ApertureCorrectionStage,
+        """#<?cfg paf policy?>
+        inputKeys: {
+            exposure: backgroundSubtractedExposure
+            cellSet: cellSet
+        }
+        outputKeys: {
+            apCorr: apCorr
+            sdqa: sdqaApCorr
+        }
+        """, clip)
+\end{verbatim}
+  
+The ApertureCorrection object is returned on the clipboard in the specified key, and since we will need to use this object later to correct aperture photometry on each object depending on the spatially varying Psf,, we will fetch this object off of the clipboard and save it to disk as a Python pickle:
+ 
+\begin{verbatim}
+    import pickle
+    apcorr = clip['apCorr']
+    fout = open('apcorr.pickle', 'w')
+    pickle.dump(apcorr, fout)
+    fout.close()
+\end{verbatim}
+ 
+ 
+\subsection{Wcs Determination Stage}
+ 
+The WcsDeterminationStage is needed if Wcs information is not already attached to the image, or if the accuracy of the Wcs information is suspect.  Wcs information is usually recorded in the image header when an observation is made, but may later be calibrated more exactly using a standard astometric catalog, such as the USNOB-1 catalog or the SDSS catalog. 
+ 
+The WcsDeterminationStage uses astrometry.netcode to create a TAN-SIP representation of our image, given the catalog of sources we have already created.  A version of astrometry.net is contained in the LSST package astrometry net.  If you have not used this package before, please see the section entitled Setting up the Astrometry.Net Indexes at the end of this section.
+ 
+In the case of our KPNO images, there is a good reason why be cant keep the Wcs information in the original fits file.  The original image header from KPNO had a TAN-TNX projection which cant be read by the LSST software stack.  Rather than attempt to preserve this information from the header, we will reconstruct the distortion correction using the WcsDeterminationStage.
+ 
+Since the Wcs is not usable with the current LSST pipeline, our strategy will be to create a rough Wcs using the information in the fits header, feed that Wcs to the WcsDeterminationStage, and let the stage fine time the information.   Our header has:
+ 
+\begin{verbatim}
+CTYPE1  = 'RA---TNX'           / Coordinate type
+CTYPE2  = 'DEC--TNX'           / Coordinate type
+CRVAL1  =      139.04792062781 / Coordinate reference value
+CRVAL2  =      30.039519922129 / Coordinate reference value
+CRPIX1  =    -2182.11820383008 / Coordinate reference pixel
+CRPIX2  =     4132.22507160628 / Coordinate reference pixel
+CD1 1   =  -6.9484856570845E-7 / Coordinate matrix
+CD2 1   =  -7.1254354314285E-5 / Coordinate matrix
+CD1 2   =  -7.1679894102440E-5 / Coordinate matrix
+CD2 2   =  -3.5512019342818E-7 / Coordinate matrix
+\end{verbatim}
+ 
+We can use the CD matrix and center points in the header as follows, neglecting the TNX corrections:
+ 
+\begin{verbatim}
+    crval = geom.makePointD(139.0479,30.0395)
+    crpix = geom.makePointD(-2182.1, 4132.2)
+    cd11 = 0.0
+    cd21 = -7.13e-5
+    cd12 = -7.18e-5
+    cd22 =  0.0
+ 
+    wcs = afwImg.createWcs(crval,crpix,cd11,cd12,cd21,cd22)
+    clip[backgroundSubtractedExposure].setWcs(wcs)
+\end{verbatim}
+ 
+Assuming the indexes are properly set up, you can run the astrometry.net code to determine an accurate Wcs for your image.
+ 
+\begin{verbatim}
+    clip = runStage(measPipe.WcsDeterminationStage,
+        """#<?cfg paf policy?>
+        inputExposureKey: backgroundSubtractedExposure
+        inputSourceSetKey: sourceSet
+        outputWcsKey: measuredWcs
+        outputMatchListKey: matchList
+        numBrightStars: 150
+        defaultFilterName: mag
+        """, clip)
+\end{verbatim}
+ 
+The stage takes as its inputs a SourceSet and Exposure and outputs a Wcs object and MatchList.  The numBrightStars and defaultFilterName are parameters for the solver.  numBrightStars is the number of stars the solver should attempt to use, extracted from the SourceSet.  defaultFilterName is the name of the column from the Astrometry.Net comparison catalog which should be used to compare with the input image.  The column is named mag in our example.
+ 
+If the WcsDeterminationStage is able to find the pattern of sources in our catalog within the tables provided by lsst.meas.astrom, it will return an object on the clipboard of type afwImg.Wcs, which can be fetched using the measuredWcs key:
+ 
+\begin{verbatim}
+wcs = clip[measuredWcs]
+\end{verbatim}
+ 
+The Wcs information is also appended to the input exposure, and can be fetched with the getWcs() method.
+ 
+The stage also returns a matchList, a mapping between members our Source Set and the stars listed in the astrometry.net indexes.   If you like, you can compare the matched objects as well as list the distance between them in arcseconds using the matchList.
+ 
+In the next section, we will use the Wcs object to convert the Pixel Coordinates in our images to RA and DEC.  The Wcs class has many useful routines available for transforming between coordinate systems, the simplest of which can be used to do pixel to-Wcs and the reverse transformations, such as in the code below:
+ 
+\begin{verbatim}
+import lsst.afw.Coord as Coord
+print wcs.pixelToSky(0,0).toFk5().getDecStr()
+30:02:07.92
+print wcs.pixelToSky(0,0).toFk5().getRaStr(Coord.HOURS)
+09:17:33.33
+\end{verbatim}
+ 
+Saving the Exposure with Wcs information attached:
+ 
+While the Wcs information can  be saved on its own, it is also appended to the Exposure object which was sent to WcsDeterminationStage.  We can save both the exposure and its associated Wcs information as a fits file:
+ 
+\begin{verbatim}
+calexp = clip['backgroundSubtractedExposure]
+calexp.writeFits('calexp.fits')
+ 
+\end{verbatim}
+A dump of the fits header might appear as follows:
+ 
+\begin{verbatim}
+EQUINOX = 2000.0000000000 // Equinox of coordinates
+RADESYS = "FK5" // Coordinate system for equinox
+CRPIX1 = 881.04156212955 // WCS Coordinate reference pixel
+CRPIX2 = 2074.0829942426 // WCS Coordinate reference pixel
+CD1 1 = -3.7860955487717e-07 // WCS Coordinate scale matrix
+CD1 2 = -7.2190393375173e-05 // WCS Coordinate scale matrix
+CD2 1 = -7.2496486443239e-05 // WCS Coordinate scale matrix
+CD2 2 = 1.1228178931884e-07 // WCS Coordinate scale matrix
+CRVAL1 = 139.21727125798 // WCS Ref value (RA in decimal degrees)
+CRVAL2 = 29.972397382831 // WCS Ref value (DEC in decimal degrees)
+CUNIT1 = "deg"
+CUNIT2 = "deg"
+A ORDER = 4
+A 0 2 = -3.6365798894617e-07
+…
+B ORDER = 4
+B 0 2 = 3.5629731526012e-06
+…
+AP ORDER = 5
+AP 0 0 = 0.066716813851651
+…
+BP ORDER = 5
+BP 0 0 = 0.083261391798342
+…
+CTYPE1 = "RA---TAN-SIP" // WCS Coordinate type
+CTYPE2 = "DEC--TAN-SIP" // WCS Coordinate type
+\end{verbatim}
+ 
+Setting up the Astrometry.Net indexes
+ 
+The WcsDeterminationStage uses code in lsst.meas.astrom.net, which in turn relies on a set of fits tables in the package astrometry net data.   These fits tables contain information about patterns of sources on the sky which can be used to find a solution for our image.  The program either starts with no information at all about your image (blindSolve), or with the exisiting Wcs.  It will not only locate your image RA,Dec and CD matrix, but also calculates a TAN-SIP projection with astometric corrections. 
+ 
+But before the WcsDeterminationStage can work correctly, you must provide it with a set of Astrometry.Net indexes which are suitable for your images.  There are a wide variety of ways to fetch or make images for your particular data set.  The simplest way to get indexes is to go to the Astrometry.Net website and request access to the indexes made from the USNOB1 catalog.  You will not need all of the indexes: only the ones which are required for the size of your images.  
+ 
+Since the astrometry.net code looks for distinctive patterns of objects which might be contained in your exposure, it is important that the patterns in your indexes be of the same scale as your images.  Too large a scale and the patterns wont be present in your field of view; too small a scale and the search will be inefficient.  To read more about the indexes and which ones your will need for a given set of images, see the documentation: 
+ 
+LSST/Linux64/external/astrometry net/0.30/doc/README
+ 
+For our 2K x 4K image which is about 9 x 18 arcminutes, we will probably need the indexes 203-205.  These files should be downloaded and placed in the root of the astrometry net data package directory.  Use eups list to find the location of this directory if you are not sure.  You must also alter the file metadata.paf to contain the names of all the files you have downloaded.  Your paf file might look like this:
+ 
+\begin{verbatim}
+#<?cfg paf dictionary ?>
+#
+# Specify the coordinate system upon which these indices are based.
+#
+ 
+equinox: 2000.0
+raDecSys: "FK5"
+ 
+#Index files to load. Paths are give relative to $ASTROMETRY NET DATA DIR
+indexFile : index-203.fits
+indexFile : index-204.fits
+indexFile : index-205.fits
+\end{verbatim}
+\section{Source Measurement}
+ 
+We will now use the Image Characterization outputs produced in the last section to create a catalog of sources for our image.  The last section was a preliminary pass through the image during which we did background subtraction, developed a Psf Model over the image, and created a Wcs object.  We also created an ApertureCorrection object which we will use to perform aperture correction on the photometric measurements we do in this section.
+ 
+First read in the results from the last section and put them on the clipboard:
+ 
+\begin{verbatim}
+exp = afwImg.ExposureF("calexp1.fits")
+ 
+fin = open('apcorr.pickle','r')
+apCorr = pickle.load(fin)
+fin.close()
+ 
+additionalData = dafBase.PropertySet()
+pol = policy.Policy()
+storageType = "Boost"
+loc = dafPersist.LogicalLocation("psf.boost")
+persistence = dafPersist.Persistence.getPersistence(pol)
+storageList2 = dafPersist.StorageList()
+storage2 = persistence.getRetrieveStorage("BoostStorage", loc)
+storageList2.append(storage2)
+psfptr = persistence.unsafeRetrieve("Psf", storageList2, additionalData)
+psf = afwDetect.Psf.swigConvert(psfptr)
+ 
+clip = {
+    'scienceExposure': exp,
+    'psf': psf,
+    'apCorr': apCorr
+}
+ 
+\end{verbatim}
+\subsection{Running Source Detection}
+ 
+We can now run the Source Detection Stage on our exposure again, but this time with a realistic Psf model as a convolution filter, and with a much lower detection threshold than with our call to this stage in section 4.4  In this example, we measure objects which are at least 3 sigma, and with a minimum area of 6 contiguous pixels.  Since background subtraction has already been performed on this image, it was not requested.
+ 
+\begin{verbatim}
+clip = runStage(measPipe.SourceDetectionStage,
+    """#<?cfg paf policy?>
+    inputKeys: {
+        exposure: scienceExposure
+        psf: psf
+    }
+    outputKeys: {
+        positiveDetection: positiveFootprintSet
+    }
+    backgroundPolicy: {
+        algorithm: NONE
+    }
+    detectionPolicy: {
+        thresholdType: stdev
+        thresholdValue: 3.0
+        minPixels:      6
+    }
+    """, clip)
+\end{verbatim}
+ 
+The results are returned on the clipboard using the positiveFootprintSet key.  Source detection allows either positive or negative detections: in this case, we are only interested in the positive ones, or detections above threshold.
+ 
+What is a Footprint?
+ 
+The SourceDetectionStage returns a FootprintSet, a collection of Footprint objects. Each footprint is a set of contiguous pixels above threshold, similar to a Sextractor segment.  The following code shows you how to access the Footprints in a FootprintSet. Each Footprint has a span for each row that it occupies, and each span has a beginning and ending column position:
+ 
+\begin{verbatim}
+fpset = clip['positiveFootprintSet']
+footprints = fpset.getFootprints()
+if len(footprints) > 0:
+    footprint = footprints[0]
+    spans = footprint.getSpans()
+    for j in range(len(spans)):
+        print spans[j],spans[j].getX0(),spans[j].getX1()
+\end{verbatim}
+ 
+Viewing the segmentation map:
+ 
+You may find it instructive to view the segmentation map as an image, using the following code.  You can also save the image to a fits file using the writeFits method, as in our earlier examples.
+ 
+ds9.mtv(fpset.insertIntoImage(True)
+ 
+The call to insertIntoImage generates a new image (with the same dimensions and origin as the image we detected on) and writes the footprint's id at every pixel it covers.
+The effect is to produce an image with each footprint displayed as a uniquely numbered region.
+ 
+\subsection{Doing the Source Measurement}
+ 
+Finding a PositiveFootprintSet is the first step towards building a catalog for our image.  The next stage will examine each of the footprints and measure the PsfFlux for each object.  The output of the measurement stage is a SourceSet.  There is one Source in the SourceSet for each Footprint in the FootprintSet, but whereas Footprints are just pixel sets, Sources have measured  centroids, shapes, and fluxes.  
+ 
+In our call below to the SourceMeasurementStage, the psf is one of the input keys, as the default measurement algorithm needs the Psf to create Psf Fluxes.
+ 
+\begin{verbatim}
+clip = runStage(measPipe.SourceMeasurementStage,
+    """#<?cfg paf policy?>
+    inputKeys: {
+        exposure: scienceExposure
+        psf: psf
+        positiveDetection: positiveFootprintSet
+    }
+    outputKeys: {
+        sources: sourceSet
+    }
+    """, clip)
+\end{verbatim}
+ 
+While the Footprint gives an isophotal region and a bounding box, the Source object gives more exact information about the source centroid and shape:
+ 
+\begin{verbatim}
+ss = clip.getItem("sourceSet")
+ fps = clip.getItem(PositiveFootprintSet)
+fp = fps[100]
+print fp.getBBox()
+(1129, 89) -- (1132, 93)
+source = ss[100]
+print source.getXAstrom(),source.getYAstrom()
+1130.42326491 90.7022056676
+print source.getIxx(),source.getIxy(),source.getIyy()
+0.677250247005 0.341197346808 3.79150529619
+\end{verbatim}
+ 
+NOTE:  The Source  class  is capable of holding many different pieces of information about the position, size and shape of a given detection.  When initially constructed, a Source will only have a subset of all the information it might possibly contain. Later stages take the SourceSet as an input and fill in information about the Sources.  Prior to a value being set, the Source methods getter for that value will return 0.0.
+ 
+For example, prior to calling the ComputeSourceSkyCoordsStage, the Source methods for fetching Wcs coordinate return default 0.0 values:
+ 
+\begin{verbatim}
+print source.getRa(), source.getDec()
+0.0   0.0
+ 
+\end{verbatim}
+ 
+\subsection{Applying Aperture Correction}
+ 
+We can now apply that aperture correction to the fluxes.   
+ 
+\begin{verbatim}
+print source.getPsfFlux(),source.getPsfFluxErr()
+1688.14037746 341.339111328
+ 
+clip = runStage(measPipe.ApertureCorrectionApplyStage,
+    """#<?cfg paf policy?>
+    inputKeys: {
+        apCorr: apCorr
+        sourceSet: sourceSet
+    }
+    """, clip)
+\end{verbatim}
+ 
+The aperture correction can be seen to modify the psfFlux on items in the SourceSet.  The code below prints the PsfFlux and error of our Source before and after the aperture correction is done.  The PsfFlux and error have been reduced by roughly 6% as a result of the aperture correction.
+ 
+\begin{verbatim}
+print source.getPsfFlux(),source.getPsfFluxErr()
+1595.27814881 329.345733643
+\end{verbatim}
+ 
+You can learn more about what the apCorr object does by calling the object at the position of our source:
+ 
+\begin{verbatim}
+apc = clip.getItem(apCorr)
+print apc.computeAt(x,y)
+(0.94499140599311726, 0.041684436096061615)
+\end{verbatim}
+ 
+The aperture correction model return both a correction coefficient and an error.  The PsfFluxErr has been correctly recalculated by propagating errors from both the PsfFlux measurement and the aperture correction.
+ 
+1.5.4 Adding Sky Coordinates:
+ 
+The Wcs object we found in the last section and added to the exposure object can now be used to add FK5 coordinates to the catalog.  This pipeline stage can be called explicitly with a Wcs object, but if a Wcs object is attached to the Exposure, it will be used by default.  For that reason, the wcs keyword is optional in this example:
+ 
+\begin{verbatim}
+clip = runStage(measPipe.ComputeSourceSkyCoordsStage,
+    """#<?cfg paf policy?>
+    inputKeys: {
+        sources: sourceSet
+        exposure: scienceExposure
+        wcs: measuredWcs
+    }
+    """, clip)
+\end{verbatim}
+ 
+Prior to running this stage, the source objects have no Wcs coordinates, and the getRa() and getDec() methods return 0.0.  On return from this stage, you can get values from
+ 
+\begin{verbatim}
+print source.getRa(),source.getDec()
+2.43265225585 0.52279899529
+\end{verbatim}
+ 
+These methods return the position in RADIANS:  afwCoord.radToDeg can we used to conver to degrees.
+ 
+\subsection{Writing a catalog to disk}
+ 
+In the LSST pipeline, objects are typically saved to disk using one of the object serialization techniques.  This our simplified example the results of our calls will be saved to a text file.  You would probably do this in real pipeline only if you needed to create an export file for non-LSST tools.
+ 
+ The last two stages have not done anything to our clipboard keys.  We still have the same objects as were present at the end of the SourceMeasurementStage.  However, the previous two stages have added information to the source set which we will now access to create a finished catalog.
+\begin{verbatim}
+ 
+print clip.keys()
+['apCorr', 'sourceSet', 'sourceSet persistable', 'psf', 'scienceExposure', 
+'backgroundSubtractedExposure', 'positiveFootprintSet']
+ 
+ 
+ss = clip.getItem("sourceSet")
+fpset = clip.getItem("positiveFootprintSet")
+fps = fpset.getFootprints()
+if len(fps) != len(ss):
+        raise StandardException("Number of footprints and number in source
+               set do not agree")
+ 
+fout = open("measure1.cat", "w")
+fout.write("# ttype1 = ra\n")
+fout.write("# ttype2 = dec\n")
+fout.write("# ttype3 = id\n")
+fout.write("# ttype4 = x\n")
+fout.write("# ttype5 = y\n")
+fout.write("# ttype6 = psfflux\n")
+fout.write("# ttype7 = psffluxerr\n")
+fout.write("# ttype8 = npix\n")
+fout.write("# ttype9 = x0\n")
+fout.write("# ttype10 = y0\n")
+fout.write("# ttype11 = x1\n")
+fout.write("# ttype12 = y1\n")
+ 
+for i in range(len(fps)):
+        fp = fps[i]
+        source = ss[i]
+        bb = fp.getBBox()
+        ra = source.getRa()*Coord.radToDeg
+        dec = source.getDec()*Coord.radToDeg
+        id = source.getId()
+        x = source.getXAstrom()+1
+        y = source.getYAstrom()+1
+        psfflux = source.getPsfFlux()
+        psffluxerr = source.getPsfFluxErr()
+        fout.write("%.6f %.6f %d %.2f %.2f %.4f %.4f %d %d %d %d %d\n" %(ra,dec,id,x,
+        y,psfflux,psffluxerr,fp.getNpix(), bb.getX0(), bb.getY0(), bb.getX1(), bb.getY1()))
+fout.close()
+\end{verbatim}
