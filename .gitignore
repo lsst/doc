@@ -1,0 +1,20 @@
+
+# /
+/.sconsign.dblite
+/.sconf_temp
+/config.log
+/lsstManual.pdf
+
+# /doxygen/
+/doxygen/doxygen.conf
+/doxygen/htmlDir
+/doxygen/*.pyc
+
+# /latex/
+/latex/*~
+/latex/*.aux
+/latex/*.log
+/latex/*.out
+/latex/*.pdf
+/latex/lsstPackages.tex
+/latex/htmlDir
