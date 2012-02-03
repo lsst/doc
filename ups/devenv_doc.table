@@ -1,3 +1,5 @@
+setupRequired(sconsUtils >= 4.7)
+
 # Following is temporarily placed first (vs placing the optionals at end) 
 #      since daymops' ups table file does not specify ' >= minimum version'
 # Use setupOptional for packages not yet Released but which are privately setup
