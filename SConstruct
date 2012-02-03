@@ -1,28 +1,8 @@
 # -*- python -*-
 #
+# Setup our environment
 #
-import os, sys
-import lsst.SConsUtils as scons
+from lsst.sconsUtils import scripts
 
-env = scons.makeEnv("devenv_doc", r"$HeadURL: $", [ ])
-
-
-# farm out the SConscripts
-for d in ["latex", "doxygen"]:
-    try:
-        SConscript(os.path.join(d, "SConscript"))
-    except Exception, e:
-        print >> sys.stderr, "Error processing file %s:" % (os.path.join(d, "SConscript"))
-        print e
-        
-# cleaning
-rootClean  = r"*~ config.log"
-#latexClean = r"*.aux *.log *.out *.pdf"
-
-scons.CleanTree(rootClean)
-#scons.CleanTree(latexClean, dir="latex")
-
-env.Declare()
-env.Help("""
-Documentation Package
-""")
+scripts.BasicSConstruct.initialize(packageName="devenv_doc")
+scripts.BasicSConstruct.finish(defaultTargets=("latex", "version"))

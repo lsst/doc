@@ -1,9 +1,9 @@
 # -*- python -*-
-Import('env')
 import os
 import eups
 import re
 
+from lsst.sconsUtils import env
 
 ################
 # machine-write a .tex file for currently setup packages
@@ -68,12 +68,34 @@ Depends(pdfOutput, Glob("*.tex"))
 ##################
 # make the html
 #
-htmlManDir = "htmlDir"
+htmlManDir = "html"
 latex2html = 'latex2html -split 3 -html_version "4.0" -local_icons -mkdir -dir ' + htmlManDir + ' $SOURCE'
-Latex2HtmlAction = Action(latex2html)
-Latex2HtmlBuilder = Builder(action = Latex2HtmlAction, chdir=1)
-env.Append(BUILDERS = {'Latex2Html' : Latex2HtmlBuilder})
 
-htmlOutput = env.Latex2Html(source = filebase + '.tex')
-Depends(htmlOutput, Glob("*.tex"))
-Clean(".", htmlManDir)
+def CheckLatex2html(context):
+    #
+    # It would be better to see if latex2html works, but it doesn't like filenames
+    # with a . such as .sconf_temp/conftest_n.tex
+    #
+    haveLatex2html = 0
+    context.Message("Checking for latex2html...")
+    for p in os.environ.get("PATH", "").split(":"):
+        if os.path.exists(os.path.join(p, "latex2html")):
+            haveLatex2html = 1
+            break
+                              
+    context.Result(haveLatex2html)
+
+    return haveLatex2html
+
+conf = env.Configure(custom_tests = {'CheckLatex2html' : CheckLatex2html,})
+haveLatex2html = conf.CheckLatex2html()
+conf.Finish()
+
+if haveLatex2html:
+    Latex2HtmlAction = Action(latex2html)
+    Latex2HtmlBuilder = Builder(action = Latex2HtmlAction, chdir=1)
+    env.Append(BUILDERS = {'Latex2Html' : Latex2HtmlBuilder})
+    
+    htmlOutput = env.Latex2Html(source = filebase + '.tex')
+    Depends(htmlOutput, Glob("*.tex"))
+    Clean(".", htmlManDir)
