@@ -50,7 +50,7 @@ The list of Python package imports and aliases which you will need to run the co
       importlsst.meas.pipeline as measPipe
       importlsst.afw.geom as afwGeom
       importlsst.afw.math as afwMath
-      import lsst.afw.display.ds9 as ds9
+      import lsst.afw.display as afwDisplay
       importlsst.daf.persistence as dafPersist
       importlsst.pex.policy as pexPol
       importlsst.daf.base as dafBase
@@ -73,17 +73,17 @@ The data and bad pixel mask images are first read into ImageF objects from the f
       saturation = 28000
       var = afwImg.ImageF(img, True)
       var /= gain
-       
+
       #   Create a mask object to contain bad pixel and saturation info
       mi = afwImg.MaskU(img.BBox(afwImg.PARENT), 0)
-       
+
       #  Set the saturated bit in the Mask for all pixels > the saturation
       satbit = mask.getPlaneBitMask('SAT')
       fori in range(img.getWidth()):
           for j in range(img.getHeight()):
               ifimg.get(i,j) > saturation:
                   mask.set(i,j,satbit)
-       
+
       #  Set the bad bit in the Mask for all bad pixels in the bpm
       bpm = afwImg.ImageF("bpm_4.fits")
       badbit = mask.getPlaneBitMask('BAD')
@@ -91,7 +91,7 @@ The data and bad pixel mask images are first read into ImageF objects from the f
           for j in range(bpm.getHeight()):
               if not bpm.get(i,j) == 0:
                   mask.set(i,j,badbit)
-       
+
       #  Finally, create the masked image and exposure, save to a fits file
       mi = afwImg.makeMaskedImage(img, mask, var)
       exposure = afwImg.makeExposure(mi)
@@ -133,12 +133,12 @@ To give the reader the flavor of how you go about calling a Stage, here is an ex
 }
 \begin{small}
 \begin{verbatim}
- 
+
     exposure = afwExposureF("exposure.fits")
     clip = {'inputExposure': exposure}
     clip = runStage(measPipe.SourceDetectionStage,
         """#<?cfgpaf policy?>
-        inputKeys: { 
+        inputKeys: {
             exposure: inputExposure
         }
         outputKeys: {
@@ -194,7 +194,7 @@ Files with extension .paf are used in LSST code to specify the Policy structure 
         description: "Parameters needed to estimate background"
         minOccurs: 0
         maxOccurs: 1
-    } 
+    }
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -274,7 +274,7 @@ Now call the detection stage with policies set as follows:
             minPixels:  20
         }
         """, clip)
- 
+
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -297,7 +297,7 @@ On return from the SourceDetectionStage, you can examine the output by first loo
        printclip.keys()
       ['backgroundSubtractedExposure', 'visitExposure', 'background',
        'simplePsf','positiveFootprintSet']
- 
+
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -306,7 +306,7 @@ Note that even though we did not request a background subtracted image, we recei
 \begin{small}
 \begin{verbatim}
       background = clip.['background']
-      ds9.mtv(background.getImageF())
+      afwDisplay.Display().mtv(background.getImageF())
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -314,7 +314,7 @@ You can also write the image to disk as a fits file:
 }
 \begin{small}
 \begin{verbatim}
- 
+
        background.getImageF().writeFits("background.fits")
 \end{verbatim}
 \end{small}
@@ -324,7 +324,7 @@ If you request a convolution, he Psf which was used will also be returned on the
 \begin{small}
 \begin{verbatim}
        simplepsf = clip['simplePsf']
-       ds9.mtv(simplepsf.computeImage())
+       afwDisplay.Display().mtv(simplepsf.computeImage())
 \end{verbatim}
 \end{small}
 \subsection{
@@ -385,20 +385,21 @@ The Psf Determination Stage creates a more precise measurement of the spatially 
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
-If we fetch the CellSet returned by the stage, we find a regular grid of 256x256 pixel cells.  Each cell in the set contains a list of candidate stars, which we can look at on a ds9 image using the following code, with the sources in each grid cell color coded.
+If we fetch the CellSet returned by the stage, we find a regular grid of 256x256 pixel cells.  Each cell in the set contains a list of candidate stars, which we can look at on a display image using the following code, with the sources in each grid cell color coded.
 }
 \begin{small}
 \begin{verbatim}
-    ds9.mtv(exposure.getMaskedImage().getImage())
+    display = afwDisplay.Display()
+    display.mtv(exposure.getMaskedImage().getImage())
     cellSet = clip['cellSet']
     cellindex = 0
-    colors=(ds9.RED,ds9.GREEN,ds9.YELLOW,ds9.CYAN,ds9.BLUE)
+    colors=(afwDisplay.RED,afwDisplay.GREEN,afwDisplay.YELLOW,afwDisplay.CYAN,afwDisplay.BLUE)
     for cell in cellSet.getCellList():
         cellindex = cellindex + 1
         color = colors(cellindex % len(colors))
         forcand in cell.begin(True): # ignore bad candidates
             x, y = cand.getXCenter(),cand.getYCenter()
-            ds9.dot("O",x,y,size=5,ctype=color)
+            display.dot("O",x,y,size=5,ctype=color)
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -406,7 +407,7 @@ The Psf representation itself is returned in the "psf" key.  It may represent th
 }
 \begin{small}
 \begin{verbatim}
-    ds9.mtv(clip['psf'].computeImage(afwGeom.makePointD(0.0,0.0)))
+    afwDisplay.Display().mtv(clip['psf'].computeImage(afwGeom.makePointD(0.0,0.0)))
 \end{verbatim}
 \end{small}
 \subsection{
@@ -604,10 +605,10 @@ For our 2K x 4K image which is about 9 x 18 arcminutes, we will probably need th
       #
       # Specify the coordinate system upon which these indices are based.
       #
-       
+
       equinox: 2000.0
       raDecSys: "FK5"
-       
+
       #Index files to load. Paths are give relative to $ASTROMETRY_NET_DATA_DIR
       indexFile : index-203.fits
       indexFile : index-204.fits
@@ -626,11 +627,11 @@ First read in the results from the last section and put them on the clipboard:
 \begin{small}
 \begin{verbatim}
       exp = afwImg.ExposureF("calexp1.fits")
-       
+
       fin = open('apcorr.pickle','r')
       apCorr = pickle.load(fin)
       fin.close()
-       
+
       additionalData = dafBase.PropertySet()
       pol = policy.Policy()
       storageType = "Boost"
@@ -641,13 +642,13 @@ First read in the results from the last section and put them on the clipboard:
       storageList2.append(storage2)
       psfptr = persistence.unsafeRetrieve("Psf", storageList2, additionalData)
       psf = afwDetect.Psf.swigConvert(psfptr)
-       
+
       clip = {
           'scienceExposure': exp,
           'psf': psf,
           'apCorr': apCorr
       }
- 
+
 \end{verbatim}
 \end{small}
 \subsection{
@@ -676,7 +677,7 @@ We can now run the Source Detection Stage on our exposure again, but this time w
               minPixels:      6
           }
           """, clip)
- 
+
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -690,7 +691,7 @@ The SourceDetectionStage returns a FootprintSet, a collection of Footprint objec
 }
 \begin{small}
 \begin{verbatim}
- 
+
       fpset = clip['positiveFootprintSet']
       footprints = fpset.getFootprints()
       iflen(footprints) > 0:
@@ -711,7 +712,7 @@ You may find it instructive to view the segmentation map as an image, using the 
 }
 \begin{small}
 \begin{verbatim}
-      ds9.mtv(fpset.insertIntoImage(True)
+      afwDisplay.Display().mtv(fpset.insertIntoImage(True)
 \end{verbatim}
 \end{small}
 \paragraph{\noindent\rm
@@ -786,7 +787,7 @@ We can now apply that aperture correction to the fluxes.
 \begin{verbatim}
       printsource.getPsfFlux(),source.getPsfFluxErr()
       1688.14037746 341.339111328
-       
+
       clip = runStage(measPipe.ApertureCorrectionApplyStage,
           """#<?cfgpaf policy?>
           inputKeys: {
@@ -871,14 +872,14 @@ The last two stages have not done anything to our clipboard keys.  We still have
       printclip.keys()
       ['apCorr', 'sourceSet', 'sourceSet_persistable', 'psf', 'scienceExposure', 'backgroundSubtractedExposure',
        'convolvedImage', 'positiveFootprintSet']
-       
-       
+
+
       ss = clip.getItem("sourceSet")
       fpset = clip.getItem("positiveFootprintSet")
       fps = fpset.getFootprints()
       iflen(fps) != len(ss):
               raiseStandardException("Number of footprints and number in source set do not agree")
-       
+
       fout = open("measure1.cat", "w")
       fout.write("# ttype1 = ra\n")
       fout.write("# ttype2 = dec\n")
@@ -892,7 +893,7 @@ The last two stages have not done anything to our clipboard keys.  We still have
       fout.write("# ttype10 = y0\n")
       fout.write("# ttype11 = x1\n")
       fout.write("# ttype12 = y1\n")
-       
+
       fori in range(len(fps)):
               fp = fps[i]
               source = ss[i]
@@ -912,6 +913,6 @@ The last two stages have not done anything to our clipboard keys.  We still have
 \end{small}
 \begin{small}
 \begin{verbatim}
- 
+
 \end{verbatim}
 \end{small}

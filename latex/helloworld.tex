@@ -1,6 +1,6 @@
 This section gives you a very basic idea of how to get started with
 simple tasks.  To run the following examples, you will first need to:
-\begin{itemize} 
+\begin{itemize}
 \item Install the LSST software stack on your machine.
 Appendix~\ref{appendix-stackinstall} describes how to do this.
 \item Make sure that you have defined the LSST\_HOME environment
@@ -15,8 +15,8 @@ your command history and provide word completion; see
 Appendix \ref{appendix-interactivePython}.
 \item Type \texttt{python} to start the python interpreter, and copy/paste the examples in.
 \item If you are unfamiliar with object-oriented programming lingo,
-read or consult Appendix~\ref{appendix-lingo} as necessary.  
-\end{itemize} 
+read or consult Appendix~\ref{appendix-lingo} as necessary.
+\end{itemize}
 
 \section{Reading and displaying a FITS image}
 
@@ -27,17 +27,17 @@ framework) package, so we start by importing some afw subpackages.
 %Appendix~\ref{appendix-stackinstall} if you're not sure why).
 
 \begin{verbatim}
-import lsst.afw.display.ds9 as ds9
+import lsst.afw.display as afwDisplay
 import lsst.afw.image as afwImg
 
 im1 = afwImg.ImageF(`image1.fits')
-ds9.mtv(im1, frame=0)
+afwDisplay.Display().mtv(im1, frame=0)
 \end{verbatim}
 
 Use the name of any handy FITS image in place of image1.fits.
 \texttt{ImageF} creates an image of floats, \texttt{ImageD} creates an
-image of doubles.  If you do not already have ds9 running, Python will
-start it for you at this point.
+image of doubles.  If you do not already have the display running, Python
+will start it for you at this point.
 
 \section{Image arithmetic}
 
@@ -45,7 +45,7 @@ To save memory and time, images are operated on in-place.  That is,
 you can subtract images of identical size like this:
 
 \begin{verbatim}
-import lsst.afw.display.ds9 as ds9
+import lsst.afw.display as afwDisplay
 import lsst.afw.image as afwImg
 
 im1 = afwImg.ImageF(`image1.fits')
@@ -60,7 +60,7 @@ explicitly force the creation of the new image and {\it then} do the
 in-place arithmetic:
 
 \begin{verbatim}
-import lsst.afw.display.ds9 as ds9
+import lsst.afw.display as afwDisplay
 import lsst.afw.image as afwImg
 
 im1 = afwImg.ImageF(`image1.fits')
@@ -155,7 +155,7 @@ example.
 
 \begin{verbatim}
 import lsst.afw.image as afwImg
-import lsst.afw.display.utils as utils
+import lsst.afw.display as afwDisplay
 
 im1 = afwImg.ImageF(`image1.fits')
 im2 = afwImg.ImageF(`image2.fits')
@@ -165,12 +165,12 @@ im4 = afwImg.ImageF(`image4.fits')
 images = [im1, im2, im3, im4]
 labels = [`Label 1', `Label 2', `Label 3', `Label 4']
 
-m = utils.Mosaic()
+m = afwDisplay.utils.Mosaic()
 m.setMode(`square')
 m.setGutter(0)
 
 mosaic = m.makeMosaic(images)
-ds9.mtv(mosaic, frame=0)
+afwDisplay.Display(frame=0).mtv(mosaic)
 m.drawLabels(labels, frame=0)
 \end{verbatim}
 
@@ -200,7 +200,7 @@ import lsst.afw.math as math
 
 im1 = afwImg.ImageF(`image1.fits')
 
-flags = math.MEAN | math.STDEV | math.ERRORS 
+flags = math.MEAN | math.STDEV | math.ERRORS
 stats = math.makeStatistics(im1,flags)
 
 print stats.getResult(math.STDEV) # prints stdev AND its uncertainty
@@ -230,7 +230,7 @@ Possible statistics to calculate:
 This list is provided here to give you an idea of the capabilities in
 the system, but capabilities change over time.  It's a good idea to
 check the C++ documentation (as described below) for the most
-up-to-date list.  
+up-to-date list.
 % Introduce this idea in the next section
 %The main selling point is not that you can compute
 %statistics---many software packages can do that---but that if you use
@@ -255,12 +255,12 @@ import lsst.afw.math as math
 
 im1 = afwImg.ImageF(`image1.fits')
 
-flags = math.MEAN | math.STDEV | math.ERRORS 
+flags = math.MEAN | math.STDEV | math.ERRORS
 stats = math.makeStatistics(im1,flags)
 
 ctrl = math.StatisticsControl(5.0,3,0,True,False)
 stats = math.makeStatistics(im1,flags,ctrl)
-print stats.getResult(math.STDEV) 
+print stats.getResult(math.STDEV)
 \end{verbatim}
 
 In this case, we get a larger STDEV because we clipped less harshly
@@ -301,7 +301,7 @@ Plane 4 -> EDGE
 Plane 5 -> DETECTED
 Plane 6 -> DETECTED_NEGATIVE
 \end{verbatim}
-% LIST HERE??  
+% LIST HERE? 
 In fact, we do not have to worry about which plane is
   assigned which meaning because we can always use getters and setters
   to manipulate data by meaning rather than by plane number.
@@ -353,8 +353,8 @@ involving two images:
 \begin{verbatim}
 import lsst.afw.image as afwImg
 
-im1 = afwImg.MaskedImageF(100,100) 
-im2 = afwImg.MaskedImageF(100,100) 
+im1 = afwImg.MaskedImageF(100,100)
+im2 = afwImg.MaskedImageF(100,100)
 
 # set the variances to something nonzero
 var1 = im1.getVariance()
@@ -364,7 +364,7 @@ var2.set(2.0)
 
 # the variances should add when we add or multiply the images
 im1 += im2
-var1.get(0,0) 
+var1.get(0,0)
 \end{verbatim}
 
 The variance is now 3; the variances automatically added when I added
@@ -383,7 +383,7 @@ import lsst.afw.image as afwImg
 import lsst.afw.math as math
 
 # set up our usual image with zero pixvals and unit variance
-im1 = afwImg.MaskedImageF(100,100) 
+im1 = afwImg.MaskedImageF(100,100)
 var1 = im1.getVariance()
 var1.set(1.0)
 
@@ -401,8 +401,8 @@ stats.getResult(math.NPOINT)
 # because of the one saturated pixel (the rest are zero)
 
 # if you want to visualize the image we created
-import lsst.afw.display.ds9 as ds9
-ds9.mtv(im1)
+import lsst.afw.display as afwDisplay
+afwDisplay.Display().mtv(im1)
 
 # now mask the saturated pixel
 mask = im1.getMask()
@@ -442,7 +442,7 @@ following page charts their relationships.
 To begin, an ``image'' is simply a 2D array of pixels. A MaskedImage
 includes an image, a variance image, and a mask, as already explained.
 An Exposure is what you will most likely actually be working with.  It
-aggregates a MaskedImage and a few other useful things: 
+aggregates a MaskedImage and a few other useful things:
 \begin{itemize}
 \item Metadata, or information about the data.  You can think of this
   as a sort of ``FITS header'', but it is far more flexible because it
@@ -468,7 +468,7 @@ import lsst.afw.image as afwImg
 im1 = afwImg.ExposureF('foo.fits')
 \end{verbatim}
 but foo.fits will be expected to be a multi-extension FITS file, with
-extensions representing the data, mask, and image. Alternatively, 
+extensions representing the data, mask, and image. Alternatively,
 \texttt{im1 = afwImg.ExposureF('foo')} will try to read three separate
 FITS files named foo\_img.fits, foo\_msk.fits, and foo\_var.fits.
 

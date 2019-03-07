@@ -11,7 +11,7 @@ First, we have the usual importing of packages, and then the importing of the ex
 
 \begin{verbatim}
 import lsst.afw.image as afwImg
-import lsst.afw.display.ds9 as ds9
+import lsst.afw.display as afwDisplay
 import lsst.meas.utils.sourceDetection as sDet
 import lsst.pex.policy as pexPol
 import lsst.afw.detection as afwDet
@@ -38,9 +38,10 @@ background,subtractedImg = sDet.estimateBackground(exposure,bgPol,True)
 mi = afwImg.ExposureF.getMaskedImage(subIm)
 img = afwImg.MaskedImageF.getImage(mi)
 
-ds9.mtv(img)
+display = afwDisplay.Display()
+display.mtv(img)
 \end{verbatim}
-Don't close ds9 here because we'll need it later.
+Don't close display here because we'll need it later.
 
 Next, we specify the parameters for the \textit{detection} of sources.
 \begin{verbatim}
@@ -52,7 +53,7 @@ detPol.add('thresholdType','value')
 detPol.add('thresholdPolarity','both')
 \end{verbatim}
 
-The value you specify for \texttt{thresholdValue} will be the result of some trial and error. This is the minimum value that the pixels in a source might have - it can be determined by displaying the subtracted image in ds9 and placing your cursor at the edge of something you know is a source, then reading the value from the ``Value'' field.  Remember to use the subtracted image and not the original to determine this number!  The value of \texttt{minPixels} is the minimum number of adjacent pixels that must have a value of at least \texttt{thresholdValue}.
+The value you specify for \texttt{thresholdValue} will be the result of some trial and error. This is the minimum value that the pixels in a source might have - it can be determined by displaying the subtracted image in, e.g., ds9 and placing your cursor at the edge of something you know is a source, then reading the value from the ``Value'' field.  Remember to use the subtracted image and not the original to determine this number!  The value of \texttt{minPixels} is the minimum number of adjacent pixels that must have a value of at least \texttt{thresholdValue}.
 
 Now we do the detecting.
 
@@ -85,11 +86,11 @@ for i in range(len(objects)):
     measureSources.apply(source,objects[i])
     sourceList.append(source)
     source.setId(i)
-       
+
     print source
 
     ## Locate the center of each source and display a red +
     xc, yc = source.getXAstrom() - mi.getX0(), source.getYAstrom() - mi.getY0()
-    ds9.dot("+", xc, yc, size = 5, ctype = ds9.RED)
+    display.dot("+", xc, yc, size = 5, ctype = afwDisplay.RED)
 
 \end{verbatim}
